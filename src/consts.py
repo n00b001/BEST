@@ -1,0 +1,9 @@
+import os
+
+PORT = 12345
+API_TIMEOUT_SECS = 5
+LOG_LEVEL = "INFO"
+DOT_ENV_FILENAME = ".env"
+DEFAULT_CONFIG_FOLDER = "config"
+DEFAULT_CONFIG_LOCATION = os.path.join(DEFAULT_CONFIG_FOLDER, "providers.yaml")
+META_PROVIDERS_CONFIG_FILENAME = os.path.join(DEFAULT_CONFIG_FOLDER, 'meta-providers.yaml')
