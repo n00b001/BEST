@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from httpx import AsyncClient, Response
 
 from .config import ProviderConfig
-from .consts import API_TIMEOUT_SECS, LOG_LEVEL
+from .consts import API_TIMEOUT_SECS, LOG_LEVEL, DEFAULT_COOLDOWN_SECONDS, BAD_REQUEST_COOLDOWN_SECONDS
 
 
 class Router:
@@ -49,11 +49,10 @@ class Router:
             )
 
         for provider in valid_providers:
+            response = None
             try:
                 response = await self._make_request(provider, request)
-                if response.status_code == 429:
-                    self._handle_rate_limit(provider, response)
-                    continue
+                response.raise_for_status()
                 response_json = response.json()
                 content = response_json.get("choices", [{}])[0].get("message", {}).get("content", None)
                 if content is None:
@@ -62,9 +61,33 @@ class Router:
                     )
                     continue
                 self.logger.info(f"Got response from: {urlparse(provider.base_url).netloc}")
-                return content
+                return response_json
             except Exception as e:
-                self.logger.error(f"Error with {provider.base_url}: {str(e)}")
+                if response is not None:
+                    if response.status_code == 429:
+                        self.logger.error(
+                            f"Error with {provider.base_url}, "
+                            f"Rate limited.., "
+                            f"error message: {response.text}, "
+                            f"{str(e)}"
+                        )
+                        self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
+                    elif int(response.status_code / 100) == 4:
+                        self.logger.error(
+                            f"Error with {provider.base_url}, "
+                            f"status code: {response.status_code}, "
+                            f"error message: {response.text}, "
+                            f"{str(e)}"
+                        )
+                        self._handle_rate_limit(provider, response, BAD_REQUEST_COOLDOWN_SECONDS)
+                    else:
+                        self.logger.error(
+                            f"Error with {provider.base_url}, status code: {response.status_code}: {str(e)}"
+                        )
+                        self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
+                else:
+                    self.logger.error(f"Error with {provider.base_url}: {str(e)}")
+                    self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
                 continue
 
         raise HTTPException(
@@ -99,16 +122,18 @@ class Router:
             self.logger.error(f"Request failed to {provider.base_url}: {str(e)}")
             raise
 
-    def _handle_rate_limit(self, provider: ProviderConfig, response: Response):
-        retry_after = response.headers.get("Retry-After")
-        if retry_after:
+    def _handle_rate_limit(self, provider: ProviderConfig, response: Response, cooldown):
+        if response is not None:
+            retry_after = response.headers.get("Retry-After")
+        else:
+            retry_after = None
+
+        if retry_after is not None:
             try:
                 cooldown = int(retry_after)
             except ValueError:
-                cooldown = 60  # Default to 60 seconds
-            provider.cooldown_until = datetime.now() + timedelta(seconds=cooldown)
-        else:
-            provider.cooldown_until = datetime.now() + timedelta(seconds=60)
+                cooldown = DEFAULT_COOLDOWN_SECONDS  # Default to 60 seconds
+        provider.cooldown_until = datetime.now() + timedelta(seconds=cooldown)
 
         self.logger.warning(
             f"Provider {provider.base_url} rate limited. Cooldown until {provider.cooldown_until}"

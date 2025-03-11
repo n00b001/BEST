@@ -13,5 +13,6 @@ dependencies = [
     "python-multipart>=0.0.5",
     "pyyaml>=6.0",
     "requests>=2.32.3",
+    "ruamel-yaml>=0.18.10",
     "uvicorn>=0.15.0",
 ]

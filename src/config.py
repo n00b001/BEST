@@ -1,15 +1,16 @@
 import logging
 import os
 import re
+import traceback
 from datetime import datetime
 from typing import List
 from urllib.parse import urlparse
 import ruamel.yaml
 import coloredlogs
 import requests
-import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
 from src.consts import LOG_LEVEL, DOT_ENV_FILENAME, DEFAULT_CONFIG_LOCATION, META_PROVIDERS_CONFIG_FILENAME
 
@@ -19,10 +20,7 @@ coloredlogs.install(level=LOG_LEVEL, logger=logger)
 yaml = ruamel.yaml.YAML()
 yaml.preserve_quotes = True
 yaml.explicit_start = True
-
-class MyDumper(yaml.Dumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super(MyDumper, self).increase_indent(flow, False)
+yaml.indent(sequence=4, offset=2)
 
 
 class ProviderConfig(BaseModel):
@@ -30,14 +28,13 @@ class ProviderConfig(BaseModel):
     base_url: str
     model_name: str
     priority: int
-    api_spec: str
     cooldown_until: datetime = None
 
 
 def generate_providers(config_path):
     # Load meta providers configuration
     with open(META_PROVIDERS_CONFIG_FILENAME, 'r') as f:
-        meta_providers = yaml.safe_load(f)['providers']
+        meta_providers = yaml.load(f)['providers']
 
     output = {'providers': []}
 
@@ -76,7 +73,7 @@ def generate_providers(config_path):
             models.append({
                 'api_key_env_var': provider['api_key_env_var'],
                 'base_url': provider['base_url'],
-                'model_name': model_name,
+                'model_name': DoubleQuotedScalarString(model_name),
                 'priority': final_priority
             })
         logger.info(f"Got {len(models)} models for: {urlparse(provider['base_url']).netloc}")
@@ -85,7 +82,7 @@ def generate_providers(config_path):
     # Write output to providers.yaml
     with open(config_path, 'w') as f:
         # yaml.dump(output, f, Dumper=MyDumper, sort_keys=False, default_flow_style=False)
-        yaml.dump(output, f, sort_keys=False, default_flow_style=False)
+        yaml.dump(output, f)
 
     logger.info("Providers configuration generated successfully")
 
@@ -101,19 +98,23 @@ def load_config() -> List[ProviderConfig]:
     generate_providers(config_path)
 
     with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
+        config = yaml.load(f)
 
     for provider in config["providers"]:
-        # Get API key from environment variable
-        env_var = provider.pop("api_key_env_var")
-        api_key = os.getenv(env_var)
-        if not api_key:
-            raise ValueError(f"Missing environment variable: {env_var}")
+        try:
+            # Get API key from environment variable
+            env_var = provider.pop("api_key_env_var")
+            api_key = os.getenv(env_var)
+            if not api_key:
+                raise ValueError(f"Missing environment variable: {env_var}")
 
-        providers.append(ProviderConfig(
-            **provider,
-            api_key=api_key
-        ))
+            providers.append(ProviderConfig(
+                **provider,
+                api_key=api_key
+            ))
+        except Exception as e:
+            traceback.print_exc()
+            pass
 
     # Randomize order for providers with same priority
     providers.sort(key=lambda x: x.priority, reverse=True)
