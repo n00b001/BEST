@@ -20,7 +20,7 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
       - name: Run flake8
-        run: uv tool run flake8
+        run: uv tool run flake8 --exclude .venv
       - name: Run tests
         run: uv tool run pytest
   test:
