@@ -1,4 +1,3 @@
-# content of test_some_are_slow.py
 import time
 
 
