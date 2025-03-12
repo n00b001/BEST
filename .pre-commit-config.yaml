@@ -28,12 +28,12 @@ repos:
         description: Detect secrets in your data.
         entry: bash -c 'trufflehog git file://. --since-commit HEAD --results=verified,unknown --fail'
         language: system
-        stages: ["commit", "push"]
+        stages: [ "commit", "push" ]
   - repo: https://github.com/pypa/pipx
     rev: 1.5.0
     hooks:
       - id: pipx
         alias: flake8
         name: flake8
-        args: ["flake8", "src", "--exclude", ".venv"]
-        types: ["python"]
+        args: [ "flake8", "src", "--exclude", ".venv" ]
+        types: [ "python" ]

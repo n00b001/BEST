@@ -1,5 +1,4 @@
 import logging
-import random
 from datetime import datetime, timedelta
 from typing import List
 from urllib.parse import urlparse

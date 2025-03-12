@@ -5,9 +5,10 @@ import traceback
 from datetime import datetime
 from typing import List
 from urllib.parse import urlparse
-import ruamel.yaml
+
 import coloredlogs
 import requests
+import ruamel.yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
