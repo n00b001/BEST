@@ -1,5 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0  # Use the ref you want to point at
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -16,19 +17,22 @@ repos:
       - id: pretty-format-json
       - id: trailing-whitespace
   - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.7
     hooks:
       - id: actionlint
   - repo: https://github.com/mpalmer/action-validator
+    rev: v0.6.0
     hooks:
       - id: action-validator
   - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.88.16
     hooks:
       - id: trufflehog
         name: TruffleHog
         description: Detect secrets in your data.
         entry: bash -c 'trufflehog git file://. --since-commit HEAD --results=verified,unknown --fail'
         language: system
-        stages: [ "commit", "push" ]
+        stages: [ "pre-commit", "pre-push" ]
   - repo: local
     hooks:
       - id: autopep8
@@ -43,6 +47,18 @@ repos:
           ]
   - repo: local
     hooks:
+      - id: black
+        name: black
+        entry: uv
+        language: system
+        types: [ python ]
+        require_serial: true
+        args:
+          [
+            "run","python","-m","black","--fast","--color","-l","120","."
+          ]
+  - repo: local
+    hooks:
       - id: mypy
         name: mypy
         entry: uv
@@ -51,19 +67,7 @@ repos:
         require_serial: true
         args:
           [
-            "run","python","-m","mypy","--exclude",".venv","--follow-untyped-imports","."
-          ]
-  - repo: local
-    hooks:
-      - id: pylint
-        name: pylint
-        entry: uv
-        language: system
-        types: [ python ]
-        require_serial: true
-        args:
-          [
-            "run","python","-m","pylint","--ignore",".venv","--output-format=colorized","."
+            "run","python","-m","mypy","--exclude",".venv","--follow-untyped-imports","--explicit-package-bases","."
           ]
   - repo: local
     hooks:
@@ -76,4 +80,17 @@ repos:
         args:
           [
             "run","python","-m","flake8","--exclude",".venv","--max-line-length","120","."
+          ]
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: uv
+        language: system
+        types: [ python ]
+        require_serial: true
+        args:
+          [
+            "run","python","-m","pylint","--ignore",".venv","--output-format=colorized",
+            "--max-line-length","120","--fail-under","5","--fail-on","E","."
           ]

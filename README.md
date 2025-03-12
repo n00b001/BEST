@@ -28,7 +28,7 @@ A unified API gateway for multiple OpenAI-compatible LLM providers.
 ## **Project Rules**
 
 - Always update requirements.txt when adding dependencies
-- Keep the README updated with current status 
+- Keep the README updated with current status
 - Write tests for new features
 - Maintain API compatibility with OpenAI's spec
 - Document all configuration options
