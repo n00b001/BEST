@@ -43,7 +43,7 @@ A unified API gateway for multiple OpenAI-compatible LLM providers.
 4. Async requests for better performance
 5. Clean configuration management
 6. Health check endpoint
-7. Proper error handling
+7. Proper error handling 
 
 ## To use it:
 
