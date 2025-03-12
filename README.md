@@ -1,3 +1,6 @@
+Where to get API keys:
+https://github.com/cheahjs/free-llm-api-resources
+
 # LLM Gateway
 
 A unified API gateway for multiple OpenAI-compatible LLM providers.
@@ -11,7 +14,9 @@ A unified API gateway for multiple OpenAI-compatible LLM providers.
 
 ## Setup
 
-1. Install dependencies: `pip install -r requirements.txt`
+1. Install dependencies (do one or the other): 
+   1. `pip install -r requirements.txt`
+   2. `uv sync`
 
 ## TODO
 
@@ -27,6 +32,8 @@ A unified API gateway for multiple OpenAI-compatible LLM providers.
 - Write tests for new features
 - Maintain API compatibility with OpenAI's spec
 - Document all configuration options
+- After any change, run the project to make sure it still works
+- After any change, run any tests to make sure they still pass
 
 ## This implementation provides:
 
@@ -40,9 +47,10 @@ A unified API gateway for multiple OpenAI-compatible LLM providers.
 
 ## To use it:
 
-1. Configure your LLM providers in `config/providers.yaml`
-2. Start the service with `uvicorn src.main:app --reload`
-3. Use it like you would the OpenAI API:
+1. Configure your LLM providers in `config/meta-providers.yaml`
+2. Setup up your API keys in `.env`
+3. Start the service with `uvicorn src.main:app --reload`
+4. Use it like you would the OpenAI API:
 
 ```python
 import openai

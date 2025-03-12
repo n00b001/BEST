@@ -1,0 +1,12 @@
+providers:
+  - api_key_env_var: "GROQ_API_KEY"
+    base_url: "https://api.groq.com/openai/v1"
+    base_priority: 1
+
+  - api_key_env_var: "SCW_SECRET_KEY"
+    base_url: "https://api.scaleway.ai/28003754-a2fc-4696-8ee7-2c2b1747bc54/v1"
+    base_priority: 1
+
+  - api_key_env_var: "GEMINI_API_KEY"
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+    base_priority: 1
