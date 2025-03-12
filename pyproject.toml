@@ -11,8 +11,16 @@ dependencies = [
     "pydantic>=1.8.2",
     "python-dotenv>=0.19.0",
     "python-multipart>=0.0.5",
-    "pyyaml>=6.0",
     "requests>=2.32.3",
     "ruamel-yaml>=0.18.10",
     "uvicorn>=0.15.0",
+]
+
+[dependency-groups]
+dev = [
+    "autopep8>=2.3.2",
+    "flake8>=7.1.2",
+    "mypy>=1.15.0",
+    "pylint>=3.3.5",
+    "pytest>=8.3.5",
 ]

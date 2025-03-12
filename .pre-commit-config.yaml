@@ -29,19 +29,51 @@ repos:
         entry: bash -c 'trufflehog git file://. --since-commit HEAD --results=verified,unknown --fail'
         language: system
         stages: [ "commit", "push" ]
-  - repo: https://github.com/pypa/pipx
-    rev: 1.5.0
+  - repo: local
     hooks:
-      - id: pipx
-        alias: flake8
-        name: flake8
-        args: [ "autopep8","--exclude",".venv","-r","-i","." ]
-        types: [ "python" ]
-  - repo: https://github.com/pypa/pipx
-    rev: 1.5.0
+      - id: autopep8
+        name: autopep8
+        entry: uv
+        language: system
+        types: [ python ]
+        require_serial: true
+        args:
+          [
+            "run","python","-m","autopep8","--exclude",".venv","-ri","."
+          ]
+  - repo: local
     hooks:
-      - id: pipx
-        alias: flake8
+      - id: mypy
+        name: mypy
+        entry: uv
+        language: system
+        types: [ python ]
+        require_serial: true
+        args:
+          [
+            "run","python","-m","mypy","--exclude",".venv","."
+          ]
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: uv
+        language: system
+        types: [ python ]
+        require_serial: true
+        args:
+          [
+            "run","python","-m","pylint","--ignore",".venv","--output-format=colorized","."
+          ]
+  - repo: local
+    hooks:
+      - id: flake8
         name: flake8
-        args: [ "flake8", "src", "--exclude", ".venv" ]
-        types: [ "python" ]
+        entry: uv
+        language: system
+        types: [ python ]
+        require_serial: true
+        args:
+          [
+            "run","python","-m","flake8","--exclude",".venv","."
+          ]
