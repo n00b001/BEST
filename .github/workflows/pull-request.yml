@@ -33,9 +33,9 @@ jobs:
         with:
           enable-cache: true
       - name: mypy
-        run: uv run python -m mypy --exclude .venv .
+        run: uv run python -m mypy --exclude .venv --follow-untyped-imports .
       - name: flake8
-        run: uv run python -m flake8 --exclude .venv .
+        run: uv run python -m flake8 --exclude .venv --max-line-length 120 .
   test:
     needs: lint
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
