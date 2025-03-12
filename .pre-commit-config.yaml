@@ -1,0 +1,39 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-illegal-windows-names
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: detect-aws-credentials
+      - id: detect-private-key
+      - id: mixed-line-ending
+      - id: no-commit-to-branch
+      - id: pretty-format-json
+      - id: trailing-whitespace
+  - repo: https://github.com/rhysd/actionlint
+    hooks:
+      - id: actionlint
+  - repo: https://github.com/mpalmer/action-validator
+    hooks:
+      - id: action-validator
+  - repo: https://github.com/trufflesecurity/trufflehog
+    hooks:
+      - id: trufflehog
+        name: TruffleHog
+        description: Detect secrets in your data.
+        entry: bash -c 'trufflehog git file://. --since-commit HEAD --results=verified,unknown --fail'
+        language: system
+        stages: ["commit", "push"]
+  - repo: https://github.com/pypa/pipx
+    rev: 1.5.0
+    hooks:
+      - id: pipx
+        alias: flake8
+        name: flake8
+        args: ["flake8", "src"]
+        types: ["python"]
