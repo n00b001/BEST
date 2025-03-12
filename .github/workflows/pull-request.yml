@@ -1,4 +1,4 @@
-name: Lint / Test / Check for Secrets 
+name: Lint / Test / Check for Secrets
 on: pull_request_target
 permissions:
   checks: write
