@@ -62,11 +62,16 @@ def generate_providers(config_path):
         for model in models_data.get('data', []):
             model_name = model.get('id', '')
 
+            # todo get priority based on score from SWEbench (or similar).
+            #  If model can't be found in benchmark, then fallback to priority based on parameters
+
             # Calculate model priority
             model_priority = 1
             if match := re.search(r'-(\d+)b', model_name):
                 model_priority += int(match.group(1))
             # todo add the ability to override priority for models (with some config)
+            #  either very well known good models (priority goes up)
+            #  or bad models that are known to be terrible (priority goes down)
 
             final_priority = model_priority * provider['base_priority']
 
@@ -116,6 +121,8 @@ def load_config() -> List[ProviderConfig]:
             traceback.print_exc()
             pass
 
-    # Randomize order for providers with same priority
+    # todo: remove providers with a priority <1
+
+    # the higher the priority, the more likely the provider should be used
     providers.sort(key=lambda x: x.priority, reverse=True)
     return providers
