@@ -10,7 +10,7 @@ A unified API gateway for multiple OpenAI-compatible LLM providers.
 - Single API endpoint matching OpenAI's specification
 - Automatic failover to backup providers
 - Rate limit handling and cooldown management
-- Priority-based routing
+- Priority-based routing 
 
 ## Setup
 
