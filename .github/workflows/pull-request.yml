@@ -19,6 +19,8 @@ jobs:
           enable-cache: true
       - name: Install the project
         run: uv sync --all-extras --dev
+      - name: Run autopep8
+        run: uv tool run autopep8 --exclude .venv -r -i .
       - name: Run flake8
         run: uv tool run flake8 --exclude .venv
       - name: Run tests
