@@ -5,9 +5,10 @@ import traceback
 from datetime import datetime
 from typing import List
 from urllib.parse import urlparse
-import ruamel.yaml
+
 import coloredlogs
 import requests
+import ruamel.yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
@@ -42,7 +43,8 @@ def generate_providers(config_path):
         # Get API key from environment variable
         api_key = os.getenv(provider['api_key_env_var'])
         if not api_key:
-            logger.warning(f"Skipping provider {provider['base_url']} - API key not found in environment")
+            logger.warning(
+                f"Skipping provider {provider['base_url']} - API key not found in environment")
             continue
 
         # Fetch models from provider
@@ -54,7 +56,8 @@ def generate_providers(config_path):
             response.raise_for_status()
             models_data = response.json()
         except Exception as e:
-            logger.error(f"Error fetching models from {provider['base_url']}: {e}")
+            logger.error(
+                f"Error fetching models from {provider['base_url']}: {e}")
             continue
 
         models = []
@@ -81,7 +84,8 @@ def generate_providers(config_path):
                 'model_name': DoubleQuotedScalarString(model_name),
                 'priority': final_priority
             })
-        logger.info(f"Got {len(models)} models for: {urlparse(provider['base_url']).netloc}")
+        logger.info(
+            f"Got {len(models)} models for: {urlparse(provider['base_url']).netloc}")
         output['providers'].extend(models)
 
     # Write output to providers.yaml

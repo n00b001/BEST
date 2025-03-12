@@ -19,10 +19,23 @@ jobs:
           enable-cache: true
       - name: Install the project
         run: uv sync --all-extras --dev
-      - name: Run flake8
-        run: uv tool run flake8 --exclude .venv
-      - name: Run tests
-        run: uv tool run pytest
+      - name: autopep8
+        run: uv run python -m autopep8 --exclude .venv -ri .
+      - name: pylint
+        run: uv run python -m pylint --ignore .venv --output-format=colorized .
+  validate:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: mypy
+        run: uv run python -m mypy --exclude .venv --follow-untyped-imports .
+      - name: flake8
+        run: uv run python -m flake8 --exclude .venv --max-line-length 120 .
   test:
     needs: lint
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
@@ -36,9 +49,9 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
       - name: Run tests
-        run: uv tool run pytest
+        run: uv run python -m pytest
   truffle-hog:
-    needs: test
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - shell: bash

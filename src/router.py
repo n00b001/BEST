@@ -1,5 +1,4 @@
 import logging
-import random
 from datetime import datetime, timedelta
 from typing import List
 from urllib.parse import urlparse
@@ -56,13 +55,15 @@ class Router:
                 response = await self._make_request(provider, request)
                 response.raise_for_status()
                 response_json = response.json()
-                content = response_json.get("choices", [{}])[0].get("message", {}).get("content", None)
+                content = response_json.get("choices", [{}])[0].get(
+                    "message", {}).get("content", None)
                 if content is None:
                     self.logger.error(
                         f"Provider {provider.base_url} did not provide response in expected format: {response_json}"
                     )
                     continue
-                self.logger.info(f"Got response from: {urlparse(provider.base_url).netloc}")
+                self.logger.info(
+                    f"Got response from: {urlparse(provider.base_url).netloc}")
                 return response_json
             except Exception as e:
                 if response is not None:
@@ -73,7 +74,8 @@ class Router:
                             f"error message: {response.text}, "
                             f"{str(e)}"
                         )
-                        self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
+                        self._handle_rate_limit(
+                            provider, response, DEFAULT_COOLDOWN_SECONDS)
                     elif int(response.status_code / 100) == 4:
                         self.logger.error(
                             f"Error with {provider.base_url}, "
@@ -81,15 +83,19 @@ class Router:
                             f"error message: {response.text}, "
                             f"{str(e)}"
                         )
-                        self._handle_rate_limit(provider, response, BAD_REQUEST_COOLDOWN_SECONDS)
+                        self._handle_rate_limit(
+                            provider, response, BAD_REQUEST_COOLDOWN_SECONDS)
                     else:
                         self.logger.error(
                             f"Error with {provider.base_url}, status code: {response.status_code}: {str(e)}"
                         )
-                        self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
+                        self._handle_rate_limit(
+                            provider, response, DEFAULT_COOLDOWN_SECONDS)
                 else:
-                    self.logger.error(f"Error with {provider.base_url}: {str(e)}")
-                    self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
+                    self.logger.error(
+                        f"Error with {provider.base_url}: {str(e)}")
+                    self._handle_rate_limit(
+                        provider, response, DEFAULT_COOLDOWN_SECONDS)
                 continue
 
         raise HTTPException(
@@ -121,7 +127,8 @@ class Router:
             )
             return response
         except Exception as e:
-            self.logger.error(f"Request failed to {provider.base_url}: {str(e)}")
+            self.logger.error(
+                f"Request failed to {provider.base_url}: {str(e)}")
             raise
 
     def _handle_rate_limit(self, provider: ProviderConfig, response: Response, cooldown):
