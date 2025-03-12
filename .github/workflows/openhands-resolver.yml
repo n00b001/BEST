@@ -29,36 +29,21 @@ jobs:
         with:
           enable-cache: true
       - name: Install the project
-        run: uv sync --all-extras --dev
+        run: uv sync
 
-      - uses: JarvusInnovations/background-action@v1
-        name: Bootstrap System Under Test (SUT)
+      - uses: miguelteixeiraa/action-run-in-background@v1
+        name: run llm gateway in background
         with:
-          run: uv tool run uvicorn main:app --host 0.0.0.0 --port ${{ env.API_PORT }} &
-          # your step-level and job-level environment variables are available to your commands as-is
-          # npm install will count towards the wait-for timeout
-          # whenever possible, move unrelated scripts to a different step
-          # to background multiple processes: add & to the end of the command
+          script: uv tool run uvicorn main:app --host 0.0.0.0 --port ${{ env.API_PORT }} &
+          readiness-script: |
+            if curl -sSf http://127.0.0.1:${{ env.API_PORT }}/health > /dev/null; then
+                echo "curl request was successful."
+            else
+                echo "curl request failed."
+                exit 1
+            fi            
 
-          wait-on: http://127.0.0.1:${{ env.API_PORT }}/health
-          # IMPORTANT: to use environment variables in wait-on, you must use this form: ${{ env.VAR }}
-          # See wait-on section below for all resource types and prefixes
-
-          tail: true # true = stderr,stdout
-          # This will allow you to monitor the progress live
-
-          log-output-resume: stderr
-          # Eliminates previously output stderr log entries from post-run output
-
-          wait-for: 5m
-
-          log-output: stderr,stdout # same as true
-
-          log-output-if: failure
-          # failure = exit-early or timeout
-
-          working-directory: .
-          # sets the working directory (cwd) for the shell running commands
+          timeout: 300
 
   #      - name: Start API Gateway
   #        run: |
@@ -99,7 +84,7 @@ jobs:
       macro: ${{ vars.OPENHANDS_MACRO || '@openhands-agent' }}
       max_iterations: ${{ fromJson(vars.OPENHANDS_MAX_ITER || 50) }}
       base_container_image: ${{ vars.OPENHANDS_BASE_CONTAINER_IMAGE || '' }}
-      LLM_MODEL: ${{ vars.LLM_MODEL || 'anthropic/claude-3-5-sonnet-20241022' }}
+      LLM_MODEL: ${{ vars.LLM_MODEL || 'openai/my-model' }}
       target_branch: ${{ vars.TARGET_BRANCH || 'main' }}
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
