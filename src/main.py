@@ -37,10 +37,7 @@ async def chat_completion(request: dict):
         content = await router.route_request(request)
         return content
     except HTTPException as e:
-        return JSONResponse(
-            status_code=e.status_code,
-            content={"error": e.detail}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @app.get("/health")
