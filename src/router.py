@@ -17,25 +17,26 @@ class Router:
     coloredlogs.install(level=LOG_LEVEL, logger=logger)
 
     def __init__(self, providers: List[ProviderConfig]):
+        self.providers = providers
         # Group providers by priority and shuffle same-priority groups
         providers.sort(key=lambda x: x.priority)
         self.providers = []
         current_priority = None
         current_group = []
 
-        for p in providers:
-            if p.priority != current_priority:
-                if current_group:
-                    random.shuffle(current_group)
-                    self.providers.extend(current_group)
-                current_group = [p]
-                current_priority = p.priority
-            else:
-                current_group.append(p)
-
-        if current_group:
-            random.shuffle(current_group)
-            self.providers.extend(current_group)
+        # for p in providers:
+        #     if p.priority != current_priority:
+        #         if current_group:
+        #             random.shuffle(current_group)
+        #             self.providers.extend(current_group)
+        #         current_group = [p]
+        #         current_priority = p.priority
+        #     else:
+        #         current_group.append(p)
+        #
+        # if current_group:
+        #     random.shuffle(current_group)
+        #     self.providers.extend(current_group)
 
         self.client = AsyncClient()
 
@@ -48,6 +49,7 @@ class Router:
                 detail="All providers are rate limited"
             )
 
+        # todo the randomization between providers of the same priority should be done at call time
         for provider in valid_providers:
             response = None
             try:
