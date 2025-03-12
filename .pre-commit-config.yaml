@@ -35,5 +35,5 @@ repos:
       - id: pipx
         alias: flake8
         name: flake8
-        args: ["flake8", "src"]
+        args: ["flake8", "src", "--exclude", ".venv"]
         types: ["python"]
