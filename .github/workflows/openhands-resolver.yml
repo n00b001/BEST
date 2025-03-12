@@ -20,6 +20,8 @@ permissions:
 jobs:
   run-gateway:
     runs-on: ubuntu-latest
+    env:
+      API_PORT: 12345
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -29,49 +31,78 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
-      - name: Start API Gateway
-        run: |
-          # Start the FastAPI app in the background using uvicorn
-          uv tool run uvicorn main:app --host 0.0.0.0 --port 12345 &
-          echo $! > server.pid
-          # Wait for the API to become healthy (adjust URL and timeout as needed)
-          for i in {1..30}; do
-              if curl --fail http://127.0.0.1:12345/health; then
-                  echo "API is healthy"
-                  break
-              fi
-              sleep 1
-          done
-
-      - name: Run openhands
-        uses: All-Hands-AI/OpenHands/.github/workflows/openhands-resolver.yml@main
+      - uses: JarvusInnovations/background-action@v1
+        name: Bootstrap System Under Test (SUT)
         with:
-          macro: ${{ vars.OPENHANDS_MACRO || '@openhands-agent' }}
-          max_iterations: ${{ fromJson(vars.OPENHANDS_MAX_ITER || 100) }}
-          base_container_image: ${{ vars.OPENHANDS_BASE_CONTAINER_IMAGE || '' }}
-          LLM_MODEL: ${{ vars.LLM_MODEL || 'anthropic/claude-3-5-sonnet-20241022' }}
-          target_branch: ${{ vars.TARGET_BRANCH || 'main' }}
-        env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-          PAT_USERNAME: ${{ secrets.PAT_USERNAME }}
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          run: uv tool run uvicorn main:app --host 0.0.0.0 --port ${{ env.API_PORT }} &
+          # your step-level and job-level environment variables are available to your commands as-is
+          # npm install will count towards the wait-for timeout
+          # whenever possible, move unrelated scripts to a different step
+          # to background multiple processes: add & to the end of the command
 
-      - name: Shut down API Gateway
-        run: |
-          # Terminate the FastAPI server using the stored PID
-          kill $(cat server.pid)
+          wait-on: http://127.0.0.1:${{ env.API_PORT }}/health
+          # IMPORTANT: to use environment variables in wait-on, you must use this form: ${{ env.VAR }}
+          # See wait-on section below for all resource types and prefixes
 
-#  call-openhands-resolver2:
-#    uses: All-Hands-AI/OpenHands/.github/workflows/openhands-resolver.yml@main
-#    with:
-#      macro: ${{ vars.OPENHANDS_MACRO || '@openhands-agent' }}
-#      max_iterations: ${{ fromJson(vars.OPENHANDS_MAX_ITER || 50) }}
-#      base_container_image: ${{ vars.OPENHANDS_BASE_CONTAINER_IMAGE || '' }}
-#      LLM_MODEL: ${{ vars.LLM_MODEL || 'anthropic/claude-3-5-sonnet-20241022' }}
-#      target_branch: ${{ vars.TARGET_BRANCH || 'main' }}
-#    secrets:
-#      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-#      PAT_USERNAME: ${{ secrets.PAT_USERNAME }}
-#      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-#      LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          tail: true # true = stderr,stdout
+          # This will allow you to monitor the progress live
+
+          log-output-resume: stderr
+          # Eliminates previously output stderr log entries from post-run output
+
+          wait-for: 5m
+
+          log-output: stderr,stdout # same as true
+
+          log-output-if: failure
+          # failure = exit-early or timeout
+
+          working-directory: .
+          # sets the working directory (cwd) for the shell running commands
+
+#      - name: Start API Gateway
+#        run: |
+#          # Start the FastAPI app in the background using uvicorn
+#          uv tool run uvicorn main:app --host 0.0.0.0 --port 12345 &
+#          echo $! > server.pid
+#          # Wait for the API to become healthy (adjust URL and timeout as needed)
+#          for i in {1..30}; do
+#              if curl --fail http://127.0.0.1:12345/health; then
+#                  echo "API is healthy"
+#                  break
+#              fi
+#              sleep 1
+#          done
+
+#      - name: Run openhands
+#        uses: All-Hands-AI/OpenHands/.github/workflows/openhands-resolver.yml@main
+#        with:
+#          macro: ${{ vars.OPENHANDS_MACRO || '@openhands-agent' }}
+#          max_iterations: ${{ fromJson(vars.OPENHANDS_MAX_ITER || 100) }}
+#          base_container_image: ${{ vars.OPENHANDS_BASE_CONTAINER_IMAGE || '' }}
+#          LLM_MODEL: ${{ vars.LLM_MODEL || 'anthropic/claude-3-5-sonnet-20241022' }}
+#          target_branch: ${{ vars.TARGET_BRANCH || 'main' }}
+#        env:
+#          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+#          PAT_USERNAME: ${{ secrets.PAT_USERNAME }}
+#          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+#          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+#
+#      - name: Shut down API Gateway
+#        run: |
+#          # Terminate the FastAPI server using the stored PID
+#          kill $(cat server.pid)
+
+  call-openhands-resolver2:
+    uses: All-Hands-AI/OpenHands/.github/workflows/openhands-resolver.yml@main
+    with:
+      macro: ${{ vars.OPENHANDS_MACRO || '@openhands-agent' }}
+      max_iterations: ${{ fromJson(vars.OPENHANDS_MAX_ITER || 50) }}
+      base_container_image: ${{ vars.OPENHANDS_BASE_CONTAINER_IMAGE || '' }}
+      LLM_MODEL: ${{ vars.LLM_MODEL || 'anthropic/claude-3-5-sonnet-20241022' }}
+      target_branch: ${{ vars.TARGET_BRANCH || 'main' }}
+    secrets:
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      PAT_USERNAME: ${{ secrets.PAT_USERNAME }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
