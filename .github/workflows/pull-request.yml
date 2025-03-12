@@ -30,8 +30,8 @@ jobs:
         run: |
           uv run python -m pylint --ignore .venv --output-format=colorized \
           --max-line-length 120 --fail-under 5 --fail-on E .
-#      - name: Run tests
-#        run: uv run python -m pytest --color yes --verbosity=3
+      - name: Run tests
+        run: uv run python -m pytest --color yes --verbosity=3
   truffle-hog:
     needs: lint-and-test
     runs-on: ubuntu-latest
