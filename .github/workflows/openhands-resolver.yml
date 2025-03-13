@@ -18,37 +18,37 @@ permissions:
   issues: write
 
 jobs:
-  run-gateway:
-    runs-on: ubuntu-latest
-    env:
-      API_PORT: 12345
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-      - name: Install the project
-        run: uv sync
-
-      - uses: miguelteixeiraa/action-run-in-background@v1
-        name: run llm gateway in background
-        with:
-          script: uv tool run uvicorn main:app --host 0.0.0.0 --port ${{ env.API_PORT }} &
-          readiness-script: |
-            if curl -sSf http://127.0.0.1:${{ env.API_PORT }}/health > /dev/null; then
-                echo "curl request was successful."
-            else
-                echo "curl request failed."
-                exit 1
-            fi            
-
-          timeout: 300
+#  run-gateway:
+#    runs-on: ubuntu-latest
+#    env:
+#      API_PORT: 12345
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Install uv
+#        uses: astral-sh/setup-uv@v5
+#        with:
+#          enable-cache: true
+#      - name: Install the project
+#        run: uv sync
+#
+#      - uses: miguelteixeiraa/action-run-in-background@v1
+#        name: run llm gateway in background
+#        with:
+#          script: uv run python -m uvicorn src.main:app --host 0.0.0.0 --port ${{ env.API_PORT }} &
+#          readiness-script: |
+#            if curl -sSf http://127.0.0.1:${{ env.API_PORT }}/health > /dev/null; then
+#                echo "curl request was successful."
+#            else
+#                echo "curl request failed."
+#                exit 1
+#            fi
+#
+#          timeout: 300
 
   #      - name: Start API Gateway
   #        run: |
   #          # Start the FastAPI app in the background using uvicorn
-  #          uv tool run uvicorn main:app --host 0.0.0.0 --port 12345 &
+  #          uv run python -m uvicorn src.main:app --host 0.0.0.0 --port 12345 &
   #          echo $! > server.pid
   #          # Wait for the API to become healthy (adjust URL and timeout as needed)
   #          for i in {1..30}; do
