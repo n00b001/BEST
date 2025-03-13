@@ -78,7 +78,62 @@ class Router:
                     self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
                 continue
 
-        raise HTTPException(status_code=429, detail="All providers rate limited")
+        if not request.get("token"):
+    raise HTTPException(status_code=401, detail="Invalid token")
+token = request.get("token")
+secret_key = os.getenv("SECRET_KEY")
+if token != secret_key:
+    raise HTTPException(status_code=401, detail="Invalid token")
+if not request.get("token"):
+        raise HTTPException(status_code=401, detail="Invalid token")
+    token = request.get("token")
+    secret_key = os.getenv("SECRET_KEY")
+    if token != secret_key:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # ... (rest of the original code) ...
+    if not request.get("token"):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = request.get("token")
+    secret_key = os.getenv("SECRET_KEY")
+    if token != secret_key:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    valid_providers = self._get_available_providers()
+    if not valid_providers:
+        raise HTTPException(status_code=429, detail="All providers are rate limited")
+
+    # ... (rest of the original code) ...
+    if not request.get("token"):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = request.get("token")
+    secret_key = os.getenv("SECRET_KEY")
+    if token != secret_key:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    valid_providers = self._get_available_providers()
+    if not valid_providers:
+        raise HTTPException(status_code=429, detail="All providers are rate limited")
+
+    for provider in valid_providers:
+        try:
+            response = await self._make_request(provider, request)
+            response.raise_for_status()
+            # ... (rest of the original code) ...
+        except HTTPException as e:
+            if e.status_code == 429:
+                self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
+            elif e.status_code in (400, 401, 404, 500):
+                self._handle_rate_limit(provider, response, BAD_REQUEST_COOLDOWN_SECONDS)
+            else:
+                self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
+            continue  # Move to the next provider
+        except Exception as e:
+            self.logger.error(f"Error with {provider.base_url}: {str(e)}")
+            self._handle_rate_limit(provider, None, DEFAULT_COOLDOWN_SECONDS)
+            continue  # Move to the next provider
+
+    raise HTTPException(status_code=429, detail="All providers are rate limited")  # Should only reach here if all providers fail
 
     def _get_available_providers(self):
         now = datetime.now()
