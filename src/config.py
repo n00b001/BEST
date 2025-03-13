@@ -33,7 +33,7 @@ class ProviderConfig(BaseModel):
     base_url: str
     model_name: str
     priority: int
-    cooldown_until: datetime
+    cooldown_until: datetime = datetime.now()
 
 
 def generate_providers(config_path):
@@ -102,7 +102,7 @@ def generate_providers(config_path):
 def load_config() -> List[ProviderConfig]:
     loaded_dot_env = load_dotenv(DOT_ENV_FILENAME, verbose=True)
     if not loaded_dot_env:
-        raise RuntimeError(f"couldn't load dot env: {DOT_ENV_FILENAME}")
+        logger.warning(f"couldn't load dot env: {DOT_ENV_FILENAME}")
     providers = []
 
     config_path = os.getenv("CONFIG_PATH", DEFAULT_CONFIG_LOCATION)
@@ -119,7 +119,14 @@ def load_config() -> List[ProviderConfig]:
         if not api_key:
             raise ValueError(f"Missing environment variable: {env_var}")
 
-        providers.append(ProviderConfig(**provider, api_key=api_key))
+        providers.append(
+            ProviderConfig(
+                base_url=provider["base_url"],
+                model_name=provider["model_name"],
+                priority=provider["priority"],
+                api_key=api_key
+            )
+        )
 
     # todo: remove providers with a priority <1
 
