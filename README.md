@@ -4,6 +4,12 @@ https://github.com/cheahjs/free-llm-api-resources
 # LLM Gateway
 
 A unified API gateway for multiple OpenAI-compatible LLM providers.
+## New Features
+1. Add authentication
+2. Implement request caching
+3. Add prometheus metrics
+4. Implement circuit breaker pattern
+5. Update documentation
 
 ## Features
 
@@ -19,6 +25,11 @@ A unified API gateway for multiple OpenAI-compatible LLM providers.
     2. `uv sync`
 
 ## TODO
+1. Add authentication
+2. Implement request caching
+3. Add prometheus metrics
+4. Implement circuit breaker pattern
+5. Update README.md
 
 1. Add authentication
 2. Implement request caching
