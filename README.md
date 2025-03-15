@@ -20,10 +20,8 @@ A unified API gateway for multiple OpenAI-compatible LLM providers.
 
 ## TODO
 
-1. Add authentication
-2. Implement request caching
-3. Add prometheus metrics
-4. Implement circuit breaker pattern
+1. Implement request caching
+2. Add prometheus metrics
 
 ## **Project Rules**
 
