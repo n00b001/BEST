@@ -32,6 +32,9 @@ app.add_middleware(
 
 @app.post("/v1/chat/completions")
 async def chat_completion(request: dict):
+    token = request.headers.get("Authorization")
+    if not token or token != os.getenv("API_SECRET"):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     router: Router = app.state.router
     try:
         content = await router.route_request(request)
