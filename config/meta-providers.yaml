@@ -10,3 +10,35 @@ providers:
   - api_key_env_var: "GEMINI_API_KEY"
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
     base_priority: 1
+
+  - api_key_env_var: "OPENROUTER_API_KEY"
+    base_url: "https://openrouter.ai/api/v1"
+    base_priority: 1
+
+  - api_key_env_var: "MISTRAL_API_KEY"
+    base_url: "https://api.mistral.ai/v1"
+    base_priority: 1
+
+  - api_key_env_var: "OVH_API_KEY"
+    base_url: "https://llama-3-3-70b-instruct.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
+    base_priority: 1
+
+  - api_key_env_var: "OVH_API_KEY"
+    base_url: "https://mistral-nemo-instruct-2407.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
+    base_priority: 1
+
+  - api_key_env_var: "OVH_API_KEY"
+    base_url: "https://mixtral-8x7b-instruct-v01.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
+    base_priority: 1
+
+  - api_key_env_var: "TOGETHER_API_KEY"
+    base_url: "https://api.together.xyz/v1"
+    base_priority: 1
+
+  - api_key_env_var: "COHERE_API_KEY"
+    base_url: "https://api.cohere.ai/v2"
+    base_priority: 1
+
+  - api_key_env_var: "CHUTES_API_KEY"
+    base_url: "https://llm.chutes.ai/v1"
+    base_priority: 1

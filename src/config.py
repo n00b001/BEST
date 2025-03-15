@@ -18,6 +18,7 @@ from src.consts import (
     DEFAULT_CONFIG_LOCATION,
     META_PROVIDERS_CONFIG_FILENAME,
 )
+from src.model_score import aggregate_model_scores
 
 logger = logging.getLogger(__name__)
 coloredlogs.install(level=LOG_LEVEL, logger=logger)
@@ -32,7 +33,7 @@ class ProviderConfig(BaseModel):
     api_key: str
     base_url: str
     model_name: str
-    priority: int
+    priority: float
     cooldown_until: datetime = datetime.now()
 
 
@@ -58,25 +59,32 @@ def generate_providers(config_path):
             )
             response.raise_for_status()
             models_data = response.json()
+            if type(models_data) == list:
+                model_data_list= models_data
+            else:
+                model_data_list = models_data.get("data", [])
         except Exception as e:
             logger.error(f"Error fetching models from {provider['base_url']}: {e}")
             continue
 
         models = []
         # Process each model
-        for model in models_data.get("data", []):
+        for model in model_data_list:
             model_name = model.get("id", "")
 
-            # todo get priority based on score from SWEbench (or similar).
+            # get priority based on score from SWEbench (or similar).
             #  If model can't be found in benchmark, then fallback to priority based on parameters
-
-            # Calculate model priority
             model_priority = 1
-            if match := re.search(r"-(\d+)b", model_name):
-                model_priority += int(match.group(1))
-            # todo add the ability to override priority for models (with some config)
-            #  either very well known good models (priority goes up)
-            #  or bad models that are known to be terrible (priority goes down)
+            model_score = aggregate_model_scores(model_name)
+            if model_score is None:
+                # Calculate model priority
+                if match := re.search(r"-(\d+)b", model_name):
+                    model_priority += int(match.group(1)) / 10
+                # todo add the ability to override priority for models (with some config)
+                #  either very well known good models (priority goes up)
+                #  or bad models that are known to be terrible (priority goes down)
+            else:
+                model_priority += model_score
 
             final_priority = model_priority * provider["base_priority"]
 

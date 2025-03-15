@@ -96,7 +96,7 @@ class Router:
             response = await self.client.post(api_url, json=payload, headers=headers, timeout=API_TIMEOUT_SECS)
             return response
         except Exception as e:
-            self.logger.error(f"Request failed to {provider.base_url}: {str(e)}")
+            self.logger.debug(f"Request failed to {provider.base_url}: {str(e)}")
             raise
 
     def _handle_rate_limit(self, provider: ProviderConfig, response: Union[Response, None], cooldown):
@@ -112,4 +112,4 @@ class Router:
                 cooldown = DEFAULT_COOLDOWN_SECONDS  # Default to 60 seconds
         provider.cooldown_until = datetime.now() + timedelta(seconds=cooldown)
 
-        self.logger.warning(f"Provider {provider.base_url} rate limited. Cooldown until {provider.cooldown_until}")
+        self.logger.warning(f"Provider {provider.base_url} cooldown until {provider.cooldown_until}")
