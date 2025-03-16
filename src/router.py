@@ -24,6 +24,8 @@ class Router:
     def __init__(self, providers: List[ProviderConfig]):
         self.providers = providers
         self.client = AsyncClient()
+        self.base_cooldowns = {}
+        self.model_cooldowns = {}
 
     async def healthcheck(self):
         response = await self.client.get(url=HEALTHCHECK_URL)
@@ -82,7 +84,19 @@ class Router:
 
     def _get_available_providers(self):
         now = datetime.now()
-        return [p for p in self.providers if p.cooldown_until is None or p.cooldown_until < now]
+        available = []
+        for provider in self.providers:
+            base_cooldown_end = self.base_cooldowns.get(provider.base_url)
+            if base_cooldown_end and base_cooldown_end > now:
+                continue  # Base URL is on cooldown
+
+            model_key = (provider.base_url, provider.model_name)
+            model_cooldown_end = self.model_cooldowns.get(model_key)
+            if model_cooldown_end and model_cooldown_end > now:
+                continue  # Model is on cooldown
+
+            available.append(provider)
+        return available
 
     async def _make_request(self, provider: ProviderConfig, request: dict):
         headers = {
@@ -109,7 +123,17 @@ class Router:
             try:
                 cooldown = int(retry_after)
             except ValueError:
-                cooldown = DEFAULT_COOLDOWN_SECONDS  # Default to 60 seconds
-        provider.cooldown_until = datetime.now() + timedelta(seconds=cooldown)
+                pass  # Keep the original cooldown value if Retry-After is invalid
 
-        self.logger.warning(f"Provider {provider.base_url} cooldown until {provider.cooldown_until}")
+        is_rate_limit = False
+        if response is not None and response.status_code == 429:
+            is_rate_limit = True
+
+        cooldown_time = datetime.now() + timedelta(seconds=cooldown)
+        if is_rate_limit:
+            self.base_cooldowns[provider.base_url] = cooldown_time
+            self.logger.warning(f"Base URL {provider.base_url} cooldown until {cooldown_time}")
+        else:
+            model_key = (provider.base_url, provider.model_name)
+            self.model_cooldowns[model_key] = cooldown_time
+            self.logger.warning(f"Model {provider.model_name} cooldown until {cooldown_time}")

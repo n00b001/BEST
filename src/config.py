@@ -34,7 +34,6 @@ class ProviderConfig(BaseModel):
     base_url: str
     model_name: str
     priority: float
-    cooldown_until: datetime = datetime.now()
 
 
 def generate_providers(config_path):
