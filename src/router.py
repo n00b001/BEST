@@ -24,13 +24,9 @@ class Router:
     def __init__(self, providers: List[ProviderConfig]):
         self.providers = providers
         self.client = AsyncClient()
-        # {base_url: cooldown_end_time}
         self.base_cooldowns: Dict[str, datetime] = {}
-        # {(base_url, model_name): cooldown_end_time}
         self.model_cooldowns: Dict[Tuple[str, str], datetime] = {}
-        # {base_url: consecutive_failure_count}
         self.base_failure_counts: Dict[str, int] = {}
-        # {(base_url, model_name): consecutive_failure_count}
         self.model_failure_counts: Dict[Tuple[str, str], int] = {}
 
     async def healthcheck(self):
