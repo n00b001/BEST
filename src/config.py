@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-from consts import (
+from src.consts import (
     LOG_LEVEL,
     DOT_ENV_FILENAME,
     DEFAULT_CONFIG_LOCATION,

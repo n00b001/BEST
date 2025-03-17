@@ -67,7 +67,7 @@ class Router:
             raise
 
     async def route_request(self, request: Request):  # Change to Request
-    import os
+        import os
     auth_header = request.headers.get("Authorization")  # Get from headers
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")

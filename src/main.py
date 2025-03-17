@@ -7,10 +7,10 @@ from fastapi import FastAPI, HTTPException, Request  # Import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from config import load_config
-from consts import PORT, LOG_LEVEL
-from router import Router
-from utils import truncate_dict
+from src.config import load_config
+from src.consts import PORT, LOG_LEVEL
+from src.router import Router
+from src.utils import truncate_dict
 
 logger = logging.getLogger(__name__)
 coloredlogs.install(level=LOG_LEVEL, logger=logger)
