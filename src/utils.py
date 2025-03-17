@@ -1,7 +1,7 @@
 import builtins
 import textwrap
 
-from src.consts import MAX_REQUEST_CHAR_COUNT_FOR_LOG
+from consts import MAX_REQUEST_CHAR_COUNT_FOR_LOG
 
 
 async def truncate_dict(_dict):

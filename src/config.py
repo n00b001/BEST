@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-from src.consts import (
+from consts import (
     LOG_LEVEL,
     DOT_ENV_FILENAME,
     DEFAULT_CONFIG_LOCATION,
@@ -22,8 +22,8 @@ from src.consts import (
     MODEL_CTX_SCORE_SCALAR,
     MODEL_ADJUSTMENTS_FILENAME,
 )
-from src.model_score import aggregate_model_scores
-from src.utils import truncate_dict
+from model_score import aggregate_model_scores
+from utils import truncate_dict
 
 logger = logging.getLogger(__name__)
 coloredlogs.install(level=LOG_LEVEL, logger=logger)

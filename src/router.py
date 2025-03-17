@@ -7,8 +7,8 @@ import coloredlogs
 from fastapi import HTTPException
 from httpx import AsyncClient, Response
 
-from .config import ProviderConfig
-from .consts import (
+from config import ProviderConfig
+from consts import (
     API_TIMEOUT_SECS,
     LOG_LEVEL,
     DEFAULT_COOLDOWN_SECONDS,
@@ -66,20 +66,30 @@ class Router:
             self.logger.debug(f"Request failed to {provider.base_url}: {str(e)}")
             raise
 
-    async def route_request(self, request: dict):
-        valid_providers = self._get_available_providers()
-        if not valid_providers:
-            raise HTTPException(status_code=429, detail="All providers are rate limited")
+    async def route_request(self, request: Request):  # Change to Request
+    import os
+    auth_header = request.headers.get("Authorization")  # Get from headers
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
-        for provider in valid_providers:
-            try:
-                response = await self._make_request(provider, request)
-                response.raise_for_status()
-                return self._process_successful_response(provider, response)
-            except Exception as e:
-                await self._handle_provider_error(provider, e, response)
+    token = auth_header.split(" ")[1]
+    api_secret = os.environ.get("API_SECRET")
+    if not api_secret or token != api_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
-        raise HTTPException(status_code=429, detail="All providers rate limited")
+    valid_providers = self._get_available_providers()
+    if not valid_providers:
+        raise HTTPException(status_code=429, detail="All providers are rate limited")
+
+    for provider in valid_providers:
+        try:
+            response = await self._make_request(provider, await request.json())
+            response.raise_for_status()
+            return self._process_successful_response(provider, response)
+        except Exception as e:
+            await self._handle_provider_error(provider, e, response)
+
+    raise HTTPException(status_code=429, detail="All providers rate limited")
 
     def _process_successful_response(self, provider: ProviderConfig, response: Response):
         response_json = response.json()
