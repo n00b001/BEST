@@ -1,9 +1,10 @@
 import csv
 import io
-import re
 import logging
+import re
+from collections import defaultdict
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Generator, Tuple, DefaultDict
 
 import requests
 import yaml
@@ -19,10 +20,7 @@ SESSION = requests.Session()
 
 # Configure retries for transient errors
 retry_strategy = Retry(
-    total=3,
-    backoff_factor=1,
-    status_forcelist=[500, 502, 503, 504],
-    allowed_methods=["HEAD", "GET", "OPTIONS"]
+    total=3, backoff_factor=1, status_forcelist=[500, 502, 503, 504], allowed_methods=["HEAD", "GET", "OPTIONS"]
 )
 adapter = HTTPAdapter(max_retries=retry_strategy)
 SESSION.mount("https://", adapter)
@@ -166,31 +164,35 @@ def fetch_crux_leaderboard() -> Dict[str, Dict[str, List[float]]]:
 def fetch_tabby_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     """Fetches and processes scores from Tabby YAML leaderboard."""
     url = "https://leaderboard.tabbyml.com/tabby.yml"
-    scores: Dict[str, Dict[str, List[float]]] = {}
+    scores: DefaultDict = defaultdict(lambda: defaultdict(list))
     text = fetch_text(url)
+
     if not text:
         return scores
+
     try:
         data = yaml.safe_load(text)
         for model_name, methods in data.items():
             normalized = normalize_model_name(model_name)
-            if not isinstance(methods, dict):
-                continue
-            for method, lang_scores in methods.items():
-                if not isinstance(lang_scores, dict):
-                    continue
-                for lang, score_value in lang_scores.items():
-                    test_name = f"{method}_{lang}"
+            if isinstance(methods, dict):
+                for test_name, score_value in _generate_test_scores(methods):
                     try:
                         score = safe_float(score_value)
-                        if normalized not in scores:
-                            scores[normalized] = {}
-                        scores[normalized].setdefault(test_name, []).append(score)
+                        scores[normalized][test_name].append(score)
                     except Exception as e:
                         logger.warning(f"Skipping {model_name} {test_name}: {e}")
     except Exception as e:
         logger.error(f"Error processing Tabby data: {e}")
+
     return scores
+
+
+def _generate_test_scores(methods: dict) -> Generator[Tuple[str, Any], None, None]:
+    """Generates (test_name, score_value) pairs from methods data."""
+    for method, lang_scores in methods.items():
+        if isinstance(lang_scores, dict):
+            for lang, score_value in lang_scores.items():
+                yield f"{method}_{lang}", score_value
 
 
 @lru_cache(maxsize=1)
@@ -204,10 +206,12 @@ def fetch_aider_leaderboard() -> Dict[str, Dict[str, List[float]]]:
 
     # Find the correct leaderboard entry
     entry = next(
-        (e for e in data.values()
-         if e.get("doc") == "Aider LLM Leaderboards"
-         and "Polyglot leaderboard" in e.get("title", "")),
-        None
+        (
+            e
+            for e in data.values()
+            if e.get("doc") == "Aider LLM Leaderboards" and "Polyglot leaderboard" in e.get("title", "")
+        ),
+        None,
     )
     if not entry:
         logger.error("Aider leaderboard entry not found")
@@ -218,7 +222,8 @@ def fetch_aider_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     matches = re.findall(r"([^\|]+?)\s*\|\s*([\d\.]+)%\s*\|\s*([\d\.]+)%", content)
     for model_name, score1_str, score2_str in matches:
         try:
-            score1 = safe_float(score1_str) / 100  # Convert percentage to decimal
+            # Convert percentage to decimal
+            score1 = safe_float(score1_str) / 100
             score2 = safe_float(score2_str) / 100
             normalized = normalize_model_name(model_name)
             if normalized not in scores:
@@ -230,7 +235,7 @@ def fetch_aider_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     return scores
 
 
-def aggregate_model_scores(model_name: str) -> Optional[float]:
+def aggregate_model_scores(model_name: str) -> float:
     """Aggregates scores across all tests and leaderboards using normalized averaging."""
     normalized = normalize_model_name(model_name)
     leaderboard_averages = []
@@ -258,7 +263,7 @@ def aggregate_model_scores(model_name: str) -> Optional[float]:
             leaderboard_averages.append(leaderboard_avg)
 
     if not leaderboard_averages:
-        return None
+        return 0
 
     # Calculate final score as average of leaderboard averages
     final_score = sum(leaderboard_averages) / len(leaderboard_averages)

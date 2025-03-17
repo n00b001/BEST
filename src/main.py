@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from src.config import load_config
 from src.consts import PORT, LOG_LEVEL
 from src.router import Router
+from src.utils import truncate_dict
 
 logger = logging.getLogger(__name__)
 coloredlogs.install(level=LOG_LEVEL, logger=logger)
@@ -34,6 +35,8 @@ app.add_middleware(
 async def chat_completion(request: dict):
     router: Router = app.state.router
     try:
+        trunc_request = await truncate_dict(request)
+        logger.info(f"Got request: {trunc_request}")
         content = await router.route_request(request)
         return content
     except HTTPException as e:

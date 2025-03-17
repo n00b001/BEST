@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import List, Union
+from typing import List, Dict, Tuple
 from urllib.parse import urlparse
 
 import coloredlogs
@@ -24,76 +24,29 @@ class Router:
     def __init__(self, providers: List[ProviderConfig]):
         self.providers = providers
         self.client = AsyncClient()
-        self.base_cooldowns = {}
-        self.model_cooldowns = {}
+        self.base_cooldowns: Dict[str, datetime] = {}
+        self.model_cooldowns: Dict[Tuple[str, str], datetime] = {}
+        self.base_failure_counts: Dict[str, int] = {}
+        self.model_failure_counts: Dict[Tuple[str, str], int] = {}
 
     async def healthcheck(self):
         response = await self.client.get(url=HEALTHCHECK_URL)
         return response
 
-    async def route_request(self, request: dict):
-        valid_providers = self._get_available_providers()
-
-        if not valid_providers:
-            raise HTTPException(status_code=429, detail="All providers are rate limited")
-
-        # todo the randomization between providers of the same priority should be done at call time
-        for provider in valid_providers:
-            response = None
-            try:
-                response = await self._make_request(provider, request)
-                response.raise_for_status()
-                response_json = response.json()
-                content = response_json.get("choices", [{}])[0].get("message", {}).get("content", None)
-                if content is None:
-                    self.logger.error(
-                        f"Provider {provider.base_url} did not provide response in expected format: {response_json}"
-                    )
-                    continue
-                self.logger.info(f"Got response from: {urlparse(provider.base_url).netloc}")
-                return response_json
-            except Exception as e:
-                if response is not None:
-                    if response.status_code == 429:
-                        self.logger.error(
-                            f"Error with {provider.base_url}, "
-                            f"Rate limited.., "
-                            f"error message: {response.text}, "
-                            f"{str(e)}"
-                        )
-                        self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
-                    elif int(response.status_code / 100) == 4:
-                        self.logger.error(
-                            f"Error with {provider.base_url}, "
-                            f"status code: {response.status_code}, "
-                            f"error message: {response.text}, "
-                            f"{str(e)}"
-                        )
-                        self._handle_rate_limit(provider, response, BAD_REQUEST_COOLDOWN_SECONDS)
-                    else:
-                        self.logger.error(
-                            f"Error with {provider.base_url}, status code: {response.status_code}: {str(e)}"
-                        )
-                        self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
-                else:
-                    self.logger.error(f"Error with {provider.base_url}: {str(e)}")
-                    self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
-                continue
-
-        raise HTTPException(status_code=429, detail="All providers rate limited")
-
     def _get_available_providers(self):
         now = datetime.now()
         available = []
         for provider in self.providers:
+            # Check base URL cooldown
             base_cooldown_end = self.base_cooldowns.get(provider.base_url)
             if base_cooldown_end and base_cooldown_end > now:
-                continue  # Base URL is on cooldown
+                continue
 
+            # Check model-specific cooldown
             model_key = (provider.base_url, provider.model_name)
             model_cooldown_end = self.model_cooldowns.get(model_key)
             if model_cooldown_end and model_cooldown_end > now:
-                continue  # Model is on cooldown
+                continue
 
             available.append(provider)
         return available
@@ -113,27 +66,100 @@ class Router:
             self.logger.debug(f"Request failed to {provider.base_url}: {str(e)}")
             raise
 
-    def _handle_rate_limit(self, provider: ProviderConfig, response: Union[Response, None], cooldown):
-        if response is not None:
-            retry_after = response.headers.get("Retry-After")
-        else:
-            retry_after = None
+    async def route_request(self, request: dict):
+        valid_providers = self._get_available_providers()
+        if not valid_providers:
+            raise HTTPException(status_code=429, detail="All providers are rate limited")
 
-        if retry_after is not None:
+        for provider in valid_providers:
             try:
-                cooldown = int(retry_after)
-            except ValueError:
-                pass  # Keep the original cooldown value if Retry-After is invalid
+                response = await self._make_request(provider, request)
+                response.raise_for_status()
+                return self._process_successful_response(provider, response)
+            except Exception as e:
+                await self._handle_provider_error(provider, e, response)
 
-        is_rate_limit = False
-        if response is not None and response.status_code == 429:
-            is_rate_limit = True
+        raise HTTPException(status_code=429, detail="All providers rate limited")
+
+    def _process_successful_response(self, provider: ProviderConfig, response: Response):
+        response_json = response.json()
+        content = response_json.get("choices", [{}])[0].get("message", {}).get("content", None)
+
+        if content is None:
+            self.logger.error(f"Provider {provider.base_url} bad format: {response_json}")
+            raise ValueError("Invalid response format")
+
+        self._reset_failure_counts(provider)
+        self.logger.info(f"Got response from: {urlparse(provider.base_url).netloc}")
+        return response_json
+
+    def _reset_failure_counts(self, provider: ProviderConfig):
+        self.base_failure_counts.pop(provider.base_url, None)
+        model_key = (provider.base_url, provider.model_name)
+        self.model_failure_counts.pop(model_key, None)
+
+    async def _handle_provider_error(self, provider: ProviderConfig, error: Exception, response: Response | None):
+        if response is not None:
+            await self._handle_response_error(provider, response, error)
+        else:
+            self.logger.error(f"Error with {provider.base_url}: {str(error)}")
+            self._handle_rate_limit(provider, None, DEFAULT_COOLDOWN_SECONDS)
+
+    async def _handle_response_error(self, provider: ProviderConfig, response: Response, error: Exception):
+        status_code = response.status_code
+        error_msg = f"{provider.base_url} status {status_code}: {response.text} {str(error)}"
+
+        if status_code == 429:
+            self.logger.error(f"Rate limited: {error_msg}")
+            self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
+        elif status_code // 100 == 4:
+            self.logger.error(f"Client error: {error_msg}")
+            self._handle_rate_limit(provider, response, BAD_REQUEST_COOLDOWN_SECONDS)
+        else:
+            self.logger.error(f"Server error: {error_msg}")
+            self._handle_rate_limit(provider, response, DEFAULT_COOLDOWN_SECONDS)
+
+    def _handle_rate_limit(self, provider: ProviderConfig, response: Response | None, default_cooldown: int):
+        retry_after = self._get_retry_after(response)
+        is_rate_limit = response and response.status_code == 429
+
+        if is_rate_limit:
+            self._apply_base_cooldown(provider, retry_after)
+        else:
+            self._apply_model_cooldown(provider, response, retry_after, default_cooldown)
+
+    def _get_retry_after(self, response: Response | None) -> int | None:
+        return int(response.headers["Retry-After"]) if response and "Retry-After" in response.headers else None
+
+    def _apply_base_cooldown(self, provider: ProviderConfig, retry_after: int | None):
+        base_url = provider.base_url
+        current_failures = self.base_failure_counts.get(base_url, 0) + 1
+        self.base_failure_counts[base_url] = current_failures
+
+        cooldown = self._calculate_cooldown(retry_after, DEFAULT_COOLDOWN_SECONDS, current_failures)
+        cooldown_time = datetime.now() + timedelta(seconds=cooldown)
+        self.base_cooldowns[base_url] = cooldown_time
+        self.logger.warning(f"Base {base_url} cooldown until {cooldown_time} (failures: {current_failures})")
+
+    def _apply_model_cooldown(
+        self, provider: ProviderConfig, response: Response | None, retry_after: int | None, default_cooldown: int
+    ):
+        model_key = (provider.base_url, provider.model_name)
+        current_failures = self.model_failure_counts.get(model_key, 0) + 1
+        self.model_failure_counts[model_key] = current_failures
+
+        base_cooldown = (
+            BAD_REQUEST_COOLDOWN_SECONDS if response and response.status_code // 100 == 4 else default_cooldown
+        )
+        cooldown = self._calculate_cooldown(retry_after, base_cooldown, current_failures)
 
         cooldown_time = datetime.now() + timedelta(seconds=cooldown)
-        if is_rate_limit:
-            self.base_cooldowns[provider.base_url] = cooldown_time
-            self.logger.warning(f"Base URL {provider.base_url} cooldown until {cooldown_time}")
-        else:
-            model_key = (provider.base_url, provider.model_name)
-            self.model_cooldowns[model_key] = cooldown_time
-            self.logger.warning(f"Model {provider.model_name} cooldown until {cooldown_time}")
+        self.model_cooldowns[model_key] = cooldown_time
+        self.logger.warning(
+            f"Model {provider.model_name} cooldown until {cooldown_time} (failures: {current_failures})"
+        )
+
+    def _calculate_cooldown(self, retry_after: int | None, base_cooldown: int, failures: int) -> int:
+        if retry_after is not None:
+            return retry_after
+        return base_cooldown * (2 ** (failures - 1))

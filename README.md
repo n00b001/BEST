@@ -49,7 +49,7 @@ A unified API gateway for multiple OpenAI-compatible LLM providers.
 
 1. Configure your LLM providers in `config/meta-providers.yaml`
 2. Setup up your API keys in `.env`
-3. Start the service with `uvicorn src.main:app --reload`
+3. Start the service with `uvicorn src.main:app`
 4. Use it like you would the OpenAI API:
 
 ```python
@@ -58,3 +58,10 @@ import openai
 openai.api_base = "http://localhost:8000/v1"
 openai.api_key = "any-key"  # Not used by gateway
 ```
+
+## To develop:
+
+1. `uv sync --dev`
+2. `uvicorn src.main:app --reload`
+3. And after making code changes, run this before pushing (if it fails here, it will fail github actions) `uv run python -m autopep8 --exclude .venv -ri . && uv run python -m black --fast --color -l 120 . && uv run python -m mypy --exclude .venv --follow-untyped-imports --explicit-package-bases . && uv run python -m flake8 --exclude .venv --max-line-length 120 . && uv run python -m pylint --ignore .venv --output-format=colorized \
+          --max-line-length 120 --fail-under 5 --fail-on E . && uv run python -m pytest --color yes --verbosity=3;`
