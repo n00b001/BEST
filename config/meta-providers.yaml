@@ -1,4 +1,9 @@
 providers:
+  - api_key_env_var: "COHERE_API_KEY"
+    base_url: "https://api.cohere.ai/compatibility/v1"
+    model_url: "https://api.cohere.com/v1"
+    base_priority: 1
+
   - api_key_env_var: "GROQ_API_KEY"
     base_url: "https://api.groq.com/openai/v1"
     base_priority: 1
@@ -33,10 +38,6 @@ providers:
 
   - api_key_env_var: "TOGETHER_API_KEY"
     base_url: "https://api.together.xyz/v1"
-    base_priority: 1
-
-  - api_key_env_var: "COHERE_API_KEY"
-    base_url: "https://api.cohere.ai/v2"
     base_priority: 1
 
   - api_key_env_var: "CHUTES_API_KEY"

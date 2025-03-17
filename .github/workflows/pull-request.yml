@@ -21,7 +21,7 @@ jobs:
       - name: autopep8
         run: uv run python -m autopep8 --exclude .venv -ri .
       - name: black
-        run: uv tool run black --fast --color -l 120 .
+        run: uv run python -m black --fast --color -l 120 .
       - name: mypy
         run: uv run python -m mypy --exclude .venv --follow-untyped-imports --explicit-package-bases .
       - name: flake8
