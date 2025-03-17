@@ -167,7 +167,7 @@ def load_config() -> List[ProviderConfig]:
 
     config_path = os.getenv("CONFIG_PATH", DEFAULT_CONFIG_LOCATION)
     if (
-        not os.path.exists(META_PROVIDERS_CONFIG_FILENAME)
+        not os.path.exists(config_path)
         or os.path.getmtime(config_path) < time.time() - GENERATED_PROVIDER_CONFIG_STALE_TIME_SECS
     ):
         generate_providers(config_path)
