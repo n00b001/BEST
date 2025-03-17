@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from urllib.parse import urlparse
 
 import coloredlogs
@@ -24,12 +24,14 @@ class Router:
     def __init__(self, providers: List[ProviderConfig]):
         self.providers = providers
         self.client = AsyncClient()
-        self.base_cooldowns: Dict = {}  # {base_url: cooldown_end_time}
+        # {base_url: cooldown_end_time}
+        self.base_cooldowns: Dict[str, datetime] = {}
         # {(base_url, model_name): cooldown_end_time}
-        self.model_cooldowns: Dict = {}
-        self.base_failure_counts: Dict = {}  # {base_url: consecutive_failure_count}
+        self.model_cooldowns: Dict[Tuple[str, str], datetime] = {}
+        # {base_url: consecutive_failure_count}
+        self.base_failure_counts: Dict[str, int] = {}
         # {(base_url, model_name): consecutive_failure_count}
-        self.model_failure_counts: Dict = {}
+        self.model_failure_counts: Dict[Tuple[str, str], int] = {}
 
     async def healthcheck(self):
         response = await self.client.get(url=HEALTHCHECK_URL)
