@@ -1,29 +1,38 @@
-Where to get API keys:
-https://github.com/cheahjs/free-llm-api-resources
-
 # LLM Gateway
 
-A unified API gateway for multiple OpenAI-compatible LLM providers.
+A unified API gateway for multiple OpenAI-compatible LLM providers. This project allows you to use various LLM services through a single, OpenAI-compatible API, simplifying integration and providing features like failover and rate limiting.
+
+## Getting Started
+
+1. **Install Dependencies:** Install the required packages using either:
+    - `pip install -r requirements.txt`
+    - `uv sync`
+
+2. **Configure Providers:**
+    -  Add your LLM providers to `config/meta-providers.yaml`.
+    -  Set up your API keys in a `.env` file.  You can find resources for API keys here: [https://github.com/cheahjs/free-llm-api-resources](https://github.com/cheahjs/free-llm-api-resources)
+
+3. **Start the Service:**
+    - Run the gateway using: `uvicorn src.main:app`
+
+4. **Use the API:**
+   -  Point your OpenAI client to the gateway:
+    ```python
+    import openai
+
+    openai.api_base = "http://localhost:8000/v1"
+    openai.api_key = "any-key"  # Not used by the gateway
+    ```
 
 ## Features
 
-- Single API endpoint matching OpenAI's specification
-- Automatic failover to backup providers
-- Rate limit handling and cooldown management
-- Priority-based routing
-
-## Setup
-
-1. Install dependencies (do one or the other):
-    1. `pip install -r requirements.txt`
-    2. `uv sync`
-
-## TODO
-
-1. Add authentication
-2. Implement request caching
-3. Add prometheus metrics
-4. Implement circuit breaker pattern
+- Single API endpoint matching OpenAI's specification.
+- Automatic failover to backup providers.
+- Rate limit handling and cooldown management.
+- Priority-based routing.
+- Async requests for improved performance.
+- Health check endpoint.
+- Robust error handling.
 
 ## **Project Rules**
 
@@ -65,3 +74,7 @@ openai.api_key = "any-key"  # Not used by gateway
 2. `uvicorn src.main:app --reload`
 3. And after making code changes, run this before pushing (if it fails here, it will fail github actions) `uv run python -m autopep8 --exclude .venv -ri . && uv run python -m black --fast --color -l 120 . && uv run python -m mypy --exclude .venv --follow-untyped-imports --explicit-package-bases . && uv run python -m flake8 --exclude .venv --max-line-length 120 . && uv run python -m pylint --ignore .venv --output-format=colorized \
           --max-line-length 120 --fail-under 5 --fail-on E . && uv run python -m pytest --color yes --verbosity=3;`
+
+## Todo
+
+- Add more concrete examples to the documentation.
