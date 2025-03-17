@@ -40,7 +40,7 @@ async def chat_completion(request: Request):  # Change to Request
         content = await router.route_request(request)  # Pass the request object
         return content
     except HTTPException as e:
-        return JSONResponse(status_code=e.status_code, content={"error": "Unauthorized"})  # Correct error format
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})  # Correct error format
 
 
 @app.get("/health")

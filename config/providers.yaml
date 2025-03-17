@@ -1,2 +1,3 @@
 ---
-providers: []
+
+providers:\n  - name: openai\n    api_key: $OPENAI_API_KEY

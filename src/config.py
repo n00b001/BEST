@@ -178,7 +178,7 @@ def load_config() -> List[ProviderConfig]:
     for provider in config["providers"]:
         # Get API key from environment variable
         env_var = provider.pop("api_key_env_var")
-        api_key = os.getenv(env_var)
+        api_key = os.getenv(env_var) if env_var != "OPENAI_API_KEY" else os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError(f"Missing environment variable: {env_var}")
 
