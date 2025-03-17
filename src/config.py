@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import time
-from typing import List
+from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 import coloredlogs
@@ -41,7 +41,7 @@ class ProviderConfig(BaseModel):
     priority: float
 
 
-def _load_model_adjustments() -> dict:
+def _load_model_adjustments() -> Dict[str, float]:
     try:
         with open(MODEL_ADJUSTMENTS_FILENAME, "r") as f:
             config = yaml.load(f) or {}
@@ -54,12 +54,12 @@ def _load_model_adjustments() -> dict:
         return {}
 
 
-def generate_providers(config_path):
+def generate_providers(config_path: str) -> None:
     with open(META_PROVIDERS_CONFIG_FILENAME, "r") as f:
         meta_providers = yaml.load(f)["providers"]
 
     model_adjustments = _load_model_adjustments()
-    output = {"providers": []}
+    output: Dict[str, list] = {"providers": []}
 
     for provider in meta_providers:
         provider_models = _process_provider(provider, model_adjustments)
@@ -70,7 +70,7 @@ def generate_providers(config_path):
     logger.info("Providers configuration generated successfully")
 
 
-def _process_provider(provider: dict, model_adjustments: dict) -> list[dict]:
+def _process_provider(provider: dict, model_adjustments: Dict[str, float]) -> List[dict]:
     api_key = os.getenv(provider["api_key_env_var"])
     if not api_key:
         logger.warning(f"Skipping {provider['base_url']} - API key missing")
@@ -84,7 +84,7 @@ def _process_provider(provider: dict, model_adjustments: dict) -> list[dict]:
         return []
 
 
-def _fetch_provider_models(provider: dict, api_key: str) -> list:
+def _fetch_provider_models(provider: dict, api_key: str) -> List[dict]:
     model_url = provider.get("model_url", provider["base_url"])
     response = requests.get(
         f"{model_url}/models",
@@ -99,8 +99,8 @@ def _fetch_provider_models(provider: dict, api_key: str) -> list:
     return model_list
 
 
-def _process_provider_models(provider: dict, model_data_list: list, model_adjustments: dict) -> list[dict]:
-    processed_models = []
+def _process_provider_models(provider: dict, model_data_list: list, model_adjustments: Dict[str, float]) -> List[dict]:
+    processed_models: List[dict] = []
     for model in model_data_list:
         model_name = model.get("id", model.get("name", None))
         if model_name is None:
@@ -113,8 +113,8 @@ def _process_provider_models(provider: dict, model_data_list: list, model_adjust
     return processed_models
 
 
-def _calculate_model_priority(provider: dict, model_name: str, context_length: int, model_adjustments: dict) -> float:
-    model_score = aggregate_model_scores(model_name)
+def _calculate_model_priority(provider: dict, model_name: str, context_length: int, model_adjustments: Dict[str, float]) -> float:
+    model_score: float = aggregate_model_scores(model_name)
 
     # Parameter-based scoring
     if match := re.search(r"-(\d+)b", model_name):
@@ -129,7 +129,7 @@ def _calculate_model_priority(provider: dict, model_name: str, context_length: i
 
     # Apply global model adjustments with fuzzy matching
     normalized_model = re.sub(r"\W+", "", model_name).lower()
-    matches = []
+    matches: List[tuple[int, float]] = []
 
     for adjust_key, adjust_value in model_adjustments.items():
         normalized_key = re.sub(r"\W+", "", adjust_key).lower()
@@ -141,7 +141,7 @@ def _calculate_model_priority(provider: dict, model_name: str, context_length: i
         matches.sort(reverse=True, key=lambda x: x[0])
         model_score += matches[0][1]
 
-    final_score = model_score * provider["base_priority"]
+    final_score: float = model_score * provider["base_priority"]
     return final_score
 
 
@@ -154,18 +154,18 @@ def _create_model_config(provider: dict, model_name: str, priority: float) -> di
     }
 
 
-def _write_output_config(config_path: str, output: dict):
+def _write_output_config(config_path: str, output: dict) -> None:
     with open(config_path, "w") as f:
         yaml.dump(output, f)
 
 
 def load_config() -> List[ProviderConfig]:
-    loaded_dot_env = load_dotenv(DOT_ENV_FILENAME, verbose=True)
+    loaded_dot_env: bool = load_dotenv(DOT_ENV_FILENAME, verbose=True)
     if not loaded_dot_env:
         logger.warning(f"couldn't load dot env: {DOT_ENV_FILENAME}")
-    providers = []
+    providers: List[ProviderConfig] = []
 
-    config_path = os.getenv("CONFIG_PATH", DEFAULT_CONFIG_LOCATION)
+    config_path: str = os.getenv("CONFIG_PATH", DEFAULT_CONFIG_LOCATION)
     if (
         not os.path.exists(config_path)
         or os.path.getmtime(config_path) < time.time() - GENERATED_PROVIDER_CONFIG_STALE_TIME_SECS

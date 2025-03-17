@@ -83,21 +83,21 @@ def fetch_text(url: str, timeout: int = 10) -> Optional[str]:
 @lru_cache(maxsize=1)
 def fetch_bigcodebench_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     """Fetches scores from BigCodeBench leaderboards."""
-    urls = [
+    urls: List[str] = [
         "https://bigcode-bench.github.io/results.json",
         "https://bigcode-bench.github.io/results-hard.json",
     ]
     scores: Dict[str, Dict[str, List[float]]] = {}
     for url in urls:
-        data = fetch_json(url)
+        data: Optional[Dict] = fetch_json(url)
         if not data:
             continue
         for model_name, model_data in data.items():
-            normalized = normalize_model_name(model_name)
-            pass_at1 = model_data.get("pass@1", {})
+            normalized: str = normalize_model_name(model_name)
+            pass_at1: Dict = model_data.get("pass@1", {})
             try:
-                instruct = safe_float(pass_at1.get("instruct", 0))
-                complete = safe_float(pass_at1.get("complete", 0))
+                instruct: float = safe_float(pass_at1.get("instruct", 0))
+                complete: float = safe_float(pass_at1.get("complete", 0))
                 if normalized not in scores:
                     scores[normalized] = {}
                 scores[normalized].setdefault("instruct", []).append(instruct)
@@ -110,20 +110,20 @@ def fetch_bigcodebench_leaderboard() -> Dict[str, Dict[str, List[float]]]:
 @lru_cache(maxsize=1)
 def fetch_evalplus_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     """Fetches scores from EvalPlus leaderboard."""
-    url = "https://evalplus.github.io/results.json"
+    url: str = "https://evalplus.github.io/results.json"
     scores: Dict[str, Dict[str, List[float]]] = {}
-    data = fetch_json(url)
+    data: Optional[Dict] = fetch_json(url)
     if not data:
         return scores
     for model_name, model_data in data.items():
-        normalized = normalize_model_name(model_name)
-        pass_at1 = model_data.get("pass@1", {})
+        normalized: str = normalize_model_name(model_name)
+        pass_at1: Dict = model_data.get("pass@1", {})
         for key in ["humaneval", "humaneval+", "mbpp", "mbpp+"]:
-            val = pass_at1.get(key)
+            val: Optional[Any] = pass_at1.get(key)
             if val is None:
                 continue
             try:
-                score = safe_float(val)
+                score: float = safe_float(val)
                 if normalized not in scores:
                     scores[normalized] = {}
                 scores[normalized].setdefault(key, []).append(score)
@@ -135,21 +135,22 @@ def fetch_evalplus_leaderboard() -> Dict[str, Dict[str, List[float]]]:
 @lru_cache(maxsize=1)
 def fetch_crux_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     """Fetches and processes Crux leaderboard from CSV data."""
-    url = "https://crux-eval.github.io/data.csv"
+    url: str = "https://crux-eval.github.io/data.csv"
     scores: Dict[str, Dict[str, List[float]]] = {}
-    text = fetch_text(url)
+    text: Optional[str] = fetch_text(url)
     if not text:
         return scores
     try:
         reader = csv.DictReader(io.StringIO(text))
         for row in reader:
-            if not (model_name := row.get("Model")):
+            model_name: Optional[str] = row.get("Model")
+            if not model_name:
                 continue
-            normalized = normalize_model_name(model_name)
+            normalized: str = normalize_model_name(model_name)
             for col in ["i@1", "i@5", "o@1", "o@5"]:
-                val = row.get(col, 0)
+                val: Optional[Any] = row.get(col, 0)
                 try:
-                    score = safe_float(val)
+                    score: float = safe_float(val)
                     if normalized not in scores:
                         scores[normalized] = {}
                     scores[normalized].setdefault(col, []).append(score)
@@ -163,21 +164,21 @@ def fetch_crux_leaderboard() -> Dict[str, Dict[str, List[float]]]:
 @lru_cache(maxsize=1)
 def fetch_tabby_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     """Fetches and processes scores from Tabby YAML leaderboard."""
-    url = "https://leaderboard.tabbyml.com/tabby.yml"
-    scores: DefaultDict = defaultdict(lambda: defaultdict(list))
-    text = fetch_text(url)
+    url: str = "https://leaderboard.tabbyml.com/tabby.yml"
+    scores: DefaultDict[str, DefaultDict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+    text: Optional[str] = fetch_text(url)
 
     if not text:
         return scores
 
     try:
-        data = yaml.safe_load(text)
+        data: Dict = yaml.safe_load(text)
         for model_name, methods in data.items():
-            normalized = normalize_model_name(model_name)
+            normalized: str = normalize_model_name(model_name)
             if isinstance(methods, dict):
                 for test_name, score_value in _generate_test_scores(methods):
                     try:
-                        score = safe_float(score_value)
+                        score: float = safe_float(score_value)
                         scores[normalized][test_name].append(score)
                     except Exception as e:
                         logger.warning(f"Skipping {model_name} {test_name}: {e}")
@@ -187,7 +188,7 @@ def fetch_tabby_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     return scores
 
 
-def _generate_test_scores(methods: dict) -> Generator[Tuple[str, Any], None, None]:
+def _generate_test_scores(methods: Dict) -> Generator[Tuple[str, Any], None, None]:
     """Generates (test_name, score_value) pairs from methods data."""
     for method, lang_scores in methods.items():
         if isinstance(lang_scores, dict):
@@ -198,14 +199,14 @@ def _generate_test_scores(methods: dict) -> Generator[Tuple[str, Any], None, Non
 @lru_cache(maxsize=1)
 def fetch_aider_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     """Fetches and processes scores from Aider leaderboard."""
-    url = "https://aider.chat/assets/js/search-data.json"
+    url: str = "https://aider.chat/assets/js/search-data.json"
     scores: Dict[str, Dict[str, List[float]]] = {}
-    data = fetch_json(url)
+    data: Optional[Dict] = fetch_json(url)
     if not data:
         return scores
 
     # Find the correct leaderboard entry
-    entry = next(
+    entry: Optional[Dict] = next(
         (
             e
             for e in data.values()
@@ -218,14 +219,14 @@ def fetch_aider_leaderboard() -> Dict[str, Dict[str, List[float]]]:
         return scores
 
     # Extract and process scores
-    content = entry.get("content", "")
-    matches = re.findall(r"([^\|]+?)\s*\|\s*([\d\.]+)%\s*\|\s*([\d\.]+)%", content)
+    content: str = entry.get("content", "")
+    matches: List[Tuple[str, str, str]] = re.findall(r"([^\|]+?)\s*\|\s*([\d\.]+)%\s*\|\s*([\d\.]+)%", content)
     for model_name, score1_str, score2_str in matches:
         try:
             # Convert percentage to decimal
-            score1 = safe_float(score1_str) / 100
-            score2 = safe_float(score2_str) / 100
-            normalized = normalize_model_name(model_name)
+            score1: float = safe_float(score1_str) / 100
+            score2: float = safe_float(score2_str) / 100
+            normalized: str = normalize_model_name(model_name)
             if normalized not in scores:
                 scores[normalized] = {}
             scores[normalized].setdefault("aider_score1", []).append(score1)
@@ -237,10 +238,10 @@ def fetch_aider_leaderboard() -> Dict[str, Dict[str, List[float]]]:
 
 def aggregate_model_scores(model_name: str) -> float:
     """Aggregates scores across all tests and leaderboards using normalized averaging."""
-    normalized = normalize_model_name(model_name)
-    leaderboard_averages = []
+    normalized: str = normalize_model_name(model_name)
+    leaderboard_averages: List[float] = []
 
-    sources = [
+    sources: List[Dict[str, Dict[str, List[float]]]] = [
         fetch_bigcodebench_leaderboard(),
         fetch_evalplus_leaderboard(),
         fetch_crux_leaderboard(),
@@ -249,7 +250,7 @@ def aggregate_model_scores(model_name: str) -> float:
     ]
 
     for source in sources:
-        leaderboard_scores = []
+        leaderboard_scores: List[float] = []
         # Find all matching models in this leaderboard
         for leaderboard_model in source:
             if normalized in leaderboard_model:
@@ -259,14 +260,14 @@ def aggregate_model_scores(model_name: str) -> float:
 
         if leaderboard_scores:
             # Calculate average for this leaderboard
-            leaderboard_avg = sum(leaderboard_scores) / len(leaderboard_scores)
+            leaderboard_avg: float = sum(leaderboard_scores) / len(leaderboard_scores)
             leaderboard_averages.append(leaderboard_avg)
 
     if not leaderboard_averages:
-        return 0
+        return 0.0
 
     # Calculate final score as average of leaderboard averages
-    final_score = sum(leaderboard_averages) / len(leaderboard_averages)
+    final_score: float = sum(leaderboard_averages) / len(leaderboard_averages)
     return final_score
 
 
