@@ -19,18 +19,24 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
       - name: autopep8
+        if: always()
         run: uv run python -m autopep8 --exclude .venv -ri .
       - name: black
-        run: uv tool run black --fast --color -l 120 .
+        if: always()
+        run: uv run python -m black --fast --color -l 120 .
       - name: mypy
+        if: always()
         run: uv run python -m mypy --exclude .venv --follow-untyped-imports --explicit-package-bases .
       - name: flake8
+        if: always()
         run: uv run python -m flake8 --exclude .venv --max-line-length 120 .
       - name: pylint
+        if: always()
         run: |
           uv run python -m pylint --ignore .venv --output-format=colorized \
           --max-line-length 120 --fail-under 5 --fail-on E .
       - name: Run tests
+        if: always()
         run: uv run python -m pytest --color yes --verbosity=3
   truffle-hog:
     needs: lint-and-test
