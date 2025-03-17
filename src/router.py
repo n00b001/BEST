@@ -24,8 +24,10 @@ class Router:
     def __init__(self, providers: List[ProviderConfig]):
         self.providers = providers
         self.client = AsyncClient()
-        self.base_cooldowns = {}
-        self.model_cooldowns = {}
+        self.base_cooldowns = {}  # {base_url: cooldown_end_time}
+        self.model_cooldowns = {}  # {(base_url, model_name): cooldown_end_time}
+        self.base_failure_counts = {}  # {base_url: consecutive_failure_count}
+        self.model_failure_counts = {}  # {(base_url, model_name): consecutive_failure_count}
 
     async def healthcheck(self):
         response = await self.client.get(url=HEALTHCHECK_URL)
@@ -37,7 +39,6 @@ class Router:
         if not valid_providers:
             raise HTTPException(status_code=429, detail="All providers are rate limited")
 
-        # todo the randomization between providers of the same priority should be done at call time
         for provider in valid_providers:
             response = None
             try:
@@ -50,6 +51,10 @@ class Router:
                         f"Provider {provider.base_url} did not provide response in expected format: {response_json}"
                     )
                     continue
+                # Reset failure counts on successful request
+                self.base_failure_counts.pop(provider.base_url, None)
+                model_key = (provider.base_url, provider.model_name)
+                self.model_failure_counts.pop(model_key, None)
                 self.logger.info(f"Got response from: {urlparse(provider.base_url).netloc}")
                 return response_json
             except Exception as e:
@@ -86,14 +91,16 @@ class Router:
         now = datetime.now()
         available = []
         for provider in self.providers:
+            # Check base URL cooldown
             base_cooldown_end = self.base_cooldowns.get(provider.base_url)
             if base_cooldown_end and base_cooldown_end > now:
-                continue  # Base URL is on cooldown
+                continue
 
+            # Check model-specific cooldown
             model_key = (provider.base_url, provider.model_name)
             model_cooldown_end = self.model_cooldowns.get(model_key)
             if model_cooldown_end and model_cooldown_end > now:
-                continue  # Model is on cooldown
+                continue
 
             available.append(provider)
         return available
@@ -119,21 +126,50 @@ class Router:
         else:
             retry_after = None
 
-        if retry_after is not None:
-            try:
-                cooldown = int(retry_after)
-            except ValueError:
-                pass  # Keep the original cooldown value if Retry-After is invalid
+        is_rate_limit = response is not None and response.status_code == 429
 
-        is_rate_limit = False
-        if response is not None and response.status_code == 429:
-            is_rate_limit = True
-
-        cooldown_time = datetime.now() + timedelta(seconds=cooldown)
+        # Determine base cooldown parameters
         if is_rate_limit:
-            self.base_cooldowns[provider.base_url] = cooldown_time
-            self.logger.warning(f"Base URL {provider.base_url} cooldown until {cooldown_time}")
+            base_url = provider.base_url
+            current_failures = self.base_failure_counts.get(base_url, 0) + 1
+            self.base_failure_counts[base_url] = current_failures
+
+            # Calculate cooldown duration
+            if retry_after:
+                try:
+                    base_cooldown = int(retry_after)
+                except ValueError:
+                    base_cooldown = DEFAULT_COOLDOWN_SECONDS
+            else:
+                base_cooldown = DEFAULT_COOLDOWN_SECONDS * (2 ** (current_failures - 1))
+
+            # Apply base-level cooldown
+            cooldown_time = datetime.now() + timedelta(seconds=base_cooldown)
+            self.base_cooldowns[base_url] = cooldown_time
+            self.logger.warning(f"Base URL {base_url} cooldown until {cooldown_time} (failures: {current_failures})")
         else:
             model_key = (provider.base_url, provider.model_name)
+            current_failures = self.model_failure_counts.get(model_key, 0) + 1
+            self.model_failure_counts[model_key] = current_failures
+
+            # Determine default cooldown based on error type
+            if response and response.status_code // 100 == 4:
+                default_cooldown = BAD_REQUEST_COOLDOWN_SECONDS
+            else:
+                default_cooldown = DEFAULT_COOLDOWN_SECONDS
+
+            # Calculate cooldown duration
+            if retry_after:
+                try:
+                    model_cooldown = int(retry_after)
+                except ValueError:
+                    model_cooldown = default_cooldown
+            else:
+                model_cooldown = default_cooldown * (2 ** (current_failures - 1))
+
+            # Apply model-level cooldown
+            cooldown_time = datetime.now() + timedelta(seconds=model_cooldown)
             self.model_cooldowns[model_key] = cooldown_time
-            self.logger.warning(f"Model {provider.model_name} cooldown until {cooldown_time}")
+            self.logger.warning(
+                f"Model {provider.model_name} cooldown until {cooldown_time} (failures: {current_failures})")
+

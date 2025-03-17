@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-from datetime import datetime
 from typing import List
 from urllib.parse import urlparse
 
@@ -58,8 +57,8 @@ def generate_providers(config_path):
             )
             response.raise_for_status()
             models_data = response.json()
-            if type(models_data) == list:
-                model_data_list= models_data
+            if isinstance(models_data, list):
+                model_data_list = models_data
             else:
                 model_data_list = models_data.get("data", [])
         except Exception as e:
