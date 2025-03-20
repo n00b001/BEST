@@ -1,5 +1,5 @@
 name: Lint / Test / Check for Secrets
-on: [pull_request, push]
+on: [ pull_request, push ]
 permissions:
   checks: write
   contents: read

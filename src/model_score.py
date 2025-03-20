@@ -235,7 +235,7 @@ def fetch_aider_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     return scores
 
 
-def aggregate_model_scores(model_name: str) -> float:
+def get_leaderboard_score(model_name: str) -> float:
     """Aggregates scores across all tests and leaderboards using normalized averaging."""
     normalized = normalize_model_name(model_name)
     leaderboard_averages = []
@@ -287,7 +287,7 @@ if __name__ == "__main__":
     ]
     model_scores = []
     for model in models:
-        score = aggregate_model_scores(model)
+        score = get_leaderboard_score(model)
         if score is not None:
             model_scores.append((model, score))
         else:
