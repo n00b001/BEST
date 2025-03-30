@@ -1,51 +1,75 @@
 # model-adjustments.yaml
 adjustments:
   # Top Tier Coding Models (Professional Grade)
-  "gpt-4-turbo-preview": 3000          # OpenAI's best coding model (128k context)
-  "gpt-4-0613": 2800                   # Original GPT-4 code interpreter
-  "claude-3.5-sonnet": 3200            # Anthropic's new coding leader
-  "codestral-22b-v0.1": 2900           # Mistral's coding specialist
-  "codellama-70b-instruct": 2700        # Meta's top code model
-  "deepseek-coder-33b-instruct": 2600   # Best at fill-in-middle coding
-  "codeqwen1.5-72b-chat": 2500          # Qwen's top coding model
-  "starcoder2-15b": 2300               # BigCode's newest iteration
+  "gpt4turbopreview": 100          # OpenAI's best coding model (128k context)
+  "deepseekr1": 100
+  "DeepSeekR1Zero": 100
+  "claude3.5sonnet": 100            # Anthropic's new coding leader
+  "codestral2501": 90
+  "codestral2412": 85
+  "codestral": 80
+  "gpt40613": 95                   # Original GPT-4 code interpreter
+  "codestral22bv0.1": 97           # Mistral's coding specialist
+  "codellama70binstruct": 90        # Meta's top code model
+  "deepseekcoder33binstruct": 88   # Best at fill-in-middle coding
+  "codeqwen1.572bchat": 85          # Qwen's top coding model
+  "starcoder215b": 80               # BigCode's newest iteration
+  "geminipro": 50
+  "gemini": 40
+  "mistralsmall": 30
+  "mistral": 40
+  "llama": 30
+  "qwen2.5": 60
+  "qwen-2.5": 60
+  "qwen-2.5-coder": 60
+  "qwen-2.5-coder-32b": 60
+  "qwen-2.5-coder-32b-instruct": 60
+  "tiny": -10
+  "small": -5
+  "medium": 0
+  "large": 30
+  "coder": 30
+  "qwq": 60
+  "deepseekv3": 80
+  "olympiccoder": 10
 
   # Strong Mid-Tier Coding Models
-  "mixtral-8x22b-instruct": 2400       # Large context (64k) coding
-  "wizardcoder-33b-v1.1": 2200
-  "magicoder-s-ds-6.7b": 2100          # Synthetic code-trained model
-  "phind-code-llama-34b-v2": 2000
-
-  # Chat-Optimized Coding Models
-  "gpt-3.5-turbo-0125": 1500           # OpenAI's fastest coder
-  "claude-2.1": 1300                   # Previous gen Claude
-  "codebooga-34b": 1800
+  "mixtral8x22binstruct": 84       # Large context (64k) coding
+  "wizardcoder33bv1.1": 78
+  "magicodersds6.7b": 77          # Synthetic code-trained model
+  "phindcodellama34bv2": 75   # Chat-Optimized Coding Models
+  "gpt3.5turbo0125": 50           # OpenAI's fastest coder
+  "claude2.1": 40                   # Previous gen Claude
+  "codebooga34b": 60
 
   # Specialized Coding Models
-  "starcoder-3b": 800                  # Lightweight but capable
-  "replit-code-v1.5-3b": 700
-  "codet5p-16b": 600
+  "starcoder3b": 25                  # Lightweight but capable
+  "replitcodev1.53b": 23
+  "codet5p16b": 20
 
   # Deprioritize Non-Coding/Base Models
-  "embed-": -5000                      # All embedding models
-  "dall-e": -5000                      # Image models
-  "whisper": -5000                     # Audio models
-  "tts-": -5000                        # Text-to-speech
-  "moderation": -5000                  # Content filters
-  "text-davinci-003": -3000            # Old completion-style
-  "llama-2-7b": -2000                  # Base non-code tuned
+  "embed": -100                      # All embedding models
+  "dalle": -100                      # Image models
+  "whisper": -100                     # Audio models
+  "tts": -100                        # Text-to-speech
+  "moderation": -100                  # Content filters
+  "textdavinci003": -30             # Old completion-style
+  "llama27b": -20                  # Base non-code tuned
+  "auto": -3000                       # openrouter auto
+  "flux": -3000                       # openrouter auto
+  "stablediffusion": -100
 
   # Version-Specific Adjustments
-  "gpt-4-32k": 2800                    # Legacy 32k context
-  "claude-3-opus": 2800                # Powerful but not coding-specialized
-  "mixtral-8x7b-instruct": 1900        # Previous Mixtral
+  "gpt432k": 95                    # Legacy 32k context
+  "claude3opus": 95                # Powerful but not coding-specialized
+  "mixtral8x7binstruct": 63         # Previous Mixtral
 
   # Vendor-Specific Coding Models
-  "gemma-code-2b": 1200                # Google's code model
-  "xwin-coder-34b": 1600
-  "solar-10.7b-instruct": 1400
+  "gemmacode2b": 40                # Google's code model
+  "xwincoder34b": 52
+  "solar10.7binstruct": 47
 
   # Deprioritize Non-Chat Formats
-  "-base": -3000                       # Base non-instruct models
-  "-completion": -3000                 # Completion-style endpoints
-  "-pretrained": -3000
+  "base": -30                       # Base non-instruct models
+  "completion": -30                 # Completion-style endpoints
+  "pretrained": -30

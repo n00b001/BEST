@@ -1,6 +1,7 @@
 # LLM Gateway
 
-A unified API gateway for multiple OpenAI-compatible LLM providers. This project allows you to use various LLM services through a single, OpenAI-compatible API, simplifying integration and providing features like failover and rate limiting.
+A unified API gateway for multiple OpenAI-compatible LLM providers. This project allows you to use various LLM services
+through a single, OpenAI-compatible API, simplifying integration and providing features like failover and rate limiting.
 
 ## Getting Started
 
@@ -9,14 +10,15 @@ A unified API gateway for multiple OpenAI-compatible LLM providers. This project
     - `uv sync`
 
 2. **Configure Providers:**
-    -  Add your LLM providers to `config/meta-providers.yaml`.
-    -  Set up your API keys in a `.env` file.  You can find resources for API keys here: [https://github.com/cheahjs/free-llm-api-resources](https://github.com/cheahjs/free-llm-api-resources)
+    - Add your LLM providers to `config/meta-providers.yaml`.
+    - Set up your API keys in a `.env` file. You can find resources for API keys
+      here: [https://github.com/cheahjs/free-llm-api-resources](https://github.com/cheahjs/free-llm-api-resources)
 
 3. **Start the Service:**
     - Run the gateway using: `uvicorn src.main:app`
 
 4. **Use the API:**
-   -  Point your OpenAI client to the gateway:
+    - Point your OpenAI client to the gateway:
     ```python
     import openai
 

@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from urllib.parse import urlparse
 
@@ -15,14 +16,16 @@ from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from src.consts import (
     LOG_LEVEL,
     DOT_ENV_FILENAME,
-    DEFAULT_CONFIG_LOCATION,
+    PROVIDERS_CONFIG_FILENAME,
     META_PROVIDERS_CONFIG_FILENAME,
     GENERATED_PROVIDER_CONFIG_STALE_TIME_SECS,
     MODEL_PARAM_SCORE_SCALAR,
     MODEL_CTX_SCORE_SCALAR,
     MODEL_ADJUSTMENTS_FILENAME,
+    MODEL_LEADERBOARD_SCORE_SCALAR,
+    MODEL_ADJUSTMENT_SCALAR,
 )
-from src.model_score import aggregate_model_scores
+from src.model_score import get_leaderboard_score
 from src.utils import truncate_dict
 
 logger = logging.getLogger(__name__)
@@ -38,39 +41,54 @@ class ProviderConfig(BaseModel):
     api_key: str
     base_url: str
     model_name: str
-    priority: float
+    priority: dict[str, float]
+
+    def __hash__(self):
+        return hash(f"{self.api_key}{self.base_url}{self.model_name}{str(property)}")
 
 
-def _load_model_adjustments() -> dict:
+def _load_model_adjustments(model_adjustments_filename) -> dict:
     try:
-        with open(MODEL_ADJUSTMENTS_FILENAME, "r") as f:
-            config = yaml.load(f) or {}
+        with open(model_adjustments_filename, "r") as f:
+            config = yaml.load(f)
         return config.get("adjustments", {})
     except FileNotFoundError:
-        logger.warning(f"No model adjustments found at {MODEL_ADJUSTMENTS_FILENAME}")
+        logger.warning(f"No model adjustments found at {model_adjustments_filename}")
         return {}
     except Exception as e:
         logger.error(f"Error loading model adjustments: {e}")
         return {}
 
 
-def generate_providers(config_path):
-    with open(META_PROVIDERS_CONFIG_FILENAME, "r") as f:
+def generate_providers(providers_config_filename, meta_providers_config_filename, model_adjustments_filename):
+    with open(meta_providers_config_filename, "r") as f:
         meta_providers = yaml.load(f)["providers"]
 
-    model_adjustments = _load_model_adjustments()
+    model_adjustments = _load_model_adjustments(model_adjustments_filename)
     output = {"providers": []}
 
-    for provider in meta_providers:
-        provider_models = _process_provider(provider, model_adjustments)
-        if provider_models:
-            output["providers"].extend(provider_models)
+    # Process each provider in parallel using ThreadPoolExecutor
+    with ThreadPoolExecutor() as executor:
+        # Prepare arguments for each provider
+        model_adjustments_list = [model_adjustments] * len(meta_providers)
+        # Map each provider to _process_provider with model_adjustments
+        model_data_list_of_list = executor.map(_get_model_data_list, meta_providers)
 
-    _write_output_config(config_path, output)
-    logger.info("Providers configuration generated successfully")
+        for provider, model_data_list, model_adjustments in zip(
+            meta_providers, model_data_list_of_list, model_adjustments_list
+        ):
+            results = _process_provider_models(provider, model_data_list, model_adjustments)
+
+            # Collect results in the order of meta_providers
+            for provider_models in results:
+                if provider_models:
+                    output["providers"].append(provider_models)
+
+    _write_output_config(providers_config_filename, output)
+    logger.info(f"{len(output['providers'])} providers configuration generated successfully")
 
 
-def _process_provider(provider: dict, model_adjustments: dict) -> list[dict]:
+def _get_model_data_list(provider: dict) -> list[dict]:
     api_key = os.getenv(provider["api_key_env_var"])
     if not api_key:
         logger.warning(f"Skipping {provider['base_url']} - API key missing")
@@ -78,7 +96,7 @@ def _process_provider(provider: dict, model_adjustments: dict) -> list[dict]:
 
     try:
         model_data_list = _fetch_provider_models(provider, api_key)
-        return _process_provider_models(provider, model_data_list, model_adjustments)
+        return model_data_list
     except Exception as e:
         logger.error(f"Error processing {provider['base_url']}: {e}")
         return []
@@ -113,19 +131,22 @@ def _process_provider_models(provider: dict, model_data_list: list, model_adjust
     return processed_models
 
 
-def _calculate_model_priority(provider: dict, model_name: str, context_length: int, model_adjustments: dict) -> float:
-    model_score = aggregate_model_scores(model_name)
+def _calculate_model_priority(
+    provider: dict, model_name: str, context_length: int, model_adjustments: dict
+) -> dict[str, float]:
+    leaderboard_score = get_leaderboard_score(model_name) * MODEL_LEADERBOARD_SCORE_SCALAR
 
     # Parameter-based scoring
+    model_param_score = 0.0
     if match := re.search(r"-(\d+)b", model_name):
-        model_score += int(match.group(1)) * MODEL_PARAM_SCORE_SCALAR
+        model_param_score += float(match.group(1)) * MODEL_PARAM_SCORE_SCALAR
 
     # Mixtral-style model scoring
     if x_match := re.search(r"(\d+)x(\d+)b", model_name):
-        model_score += int(x_match.group(1)) * int(x_match.group(2)) * MODEL_PARAM_SCORE_SCALAR
+        model_param_score += float(x_match.group(1)) * int(x_match.group(2)) * MODEL_PARAM_SCORE_SCALAR
 
     # Context length scoring
-    model_score += context_length * MODEL_CTX_SCORE_SCALAR
+    model_context_score = context_length * MODEL_CTX_SCORE_SCALAR
 
     # Apply global model adjustments with fuzzy matching
     normalized_model = re.sub(r"\W+", "", model_name).lower()
@@ -136,16 +157,27 @@ def _calculate_model_priority(provider: dict, model_name: str, context_length: i
         if normalized_key in normalized_model:
             matches.append((len(normalized_key), adjust_value))
 
+    model_adjustment_score = 0.0
     if matches:
         # Use longest match to prioritize specific variants
         matches.sort(reverse=True, key=lambda x: x[0])
-        model_score += matches[0][1]
+        model_adjustment_score += matches[0][1] * MODEL_ADJUSTMENT_SCALAR
 
-    final_score = model_score * provider["base_priority"]
-    return final_score
+    overall_score = (leaderboard_score + model_param_score + model_context_score + model_adjustment_score) * provider[
+        "base_priority"
+    ]
+    score_dict = {
+        "base": provider["base_priority"],
+        "leaderboard_score": leaderboard_score,
+        "model_param_score": model_param_score,
+        "model_context_score": model_context_score,
+        "model_adjustment_score": model_adjustment_score,
+        "overall_score": overall_score,
+    }
+    return score_dict
 
 
-def _create_model_config(provider: dict, model_name: str, priority: float) -> dict:
+def _create_model_config(provider: dict, model_name: str, priority: dict[str, float]) -> dict:
     return {
         "api_key_env_var": provider["api_key_env_var"],
         "base_url": provider["base_url"],
@@ -165,14 +197,17 @@ def load_config() -> List[ProviderConfig]:
         logger.warning(f"couldn't load dot env: {DOT_ENV_FILENAME}")
     providers = []
 
-    config_path = os.getenv("CONFIG_PATH", DEFAULT_CONFIG_LOCATION)
-    if (
-        not os.path.exists(config_path)
-        or os.path.getmtime(config_path) < time.time() - GENERATED_PROVIDER_CONFIG_STALE_TIME_SECS
-    ):
-        generate_providers(config_path)
+    providers_config_filename = os.getenv("PROVIDERS_CONFIG_FILENAME", PROVIDERS_CONFIG_FILENAME)
+    meta_providers_config_filename = os.getenv("META_PROVIDERS_CONFIG_FILENAME", META_PROVIDERS_CONFIG_FILENAME)
+    model_adjustments_filename = os.getenv("MODEL_ADJUSTMENTS_FILENAME", MODEL_ADJUSTMENTS_FILENAME)
 
-    with open(config_path, "r") as f:
+    if (
+        not os.path.exists(providers_config_filename)
+        or os.path.getmtime(providers_config_filename) < time.time() - GENERATED_PROVIDER_CONFIG_STALE_TIME_SECS
+    ):
+        generate_providers(providers_config_filename, meta_providers_config_filename, model_adjustments_filename)
+
+    with open(providers_config_filename, "r") as f:
         config = yaml.load(f)
 
     for provider in config["providers"]:
@@ -191,9 +226,17 @@ def load_config() -> List[ProviderConfig]:
             )
         )
 
+    providers_before_filter = len(providers)
     # remove providers with a priority <1
-    providers = [p for p in providers if p.priority >= 1]
+    filtered_providers = [p for p in providers if p.priority["overall_score"] > 0]
+    providers_after_filter = len(filtered_providers)
+    providers_filtered = providers_before_filter - providers_after_filter
+    if providers_filtered > 0:
+        logger.warning(f"Removed {providers_filtered} providers where score < 1")
+        providers_removed = list(set(providers).difference(set(filtered_providers)))
+        for p in providers_removed:
+            logger.debug(p)
 
     # the higher the priority, the more likely the provider should be used
-    providers.sort(key=lambda x: x.priority, reverse=True)
+    providers.sort(key=lambda x: x.priority["overall_score"], reverse=True)
     return providers

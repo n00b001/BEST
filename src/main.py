@@ -45,7 +45,32 @@ async def chat_completion(request: dict):
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    router: Router = app.state.router
+    try:
+        content = await router.healthcheck()
+        return {"status": content}
+    except HTTPException as e:
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
+
+
+@app.get("/stats")
+async def stats():
+    router: Router = app.state.router
+    try:
+        content = await router.stats()
+        return {"stats": content}
+    except HTTPException as e:
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
+
+
+@app.get("/models")
+async def models():
+    router: Router = app.state.router
+    try:
+        content = await router.models()
+        return {"models": content}
+    except HTTPException as e:
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 if __name__ == "__main__":
