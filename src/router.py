@@ -1,4 +1,5 @@
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Any
@@ -214,6 +215,9 @@ class Router:
             self._handle_rate_limit(provider, None, DEFAULT_COOLDOWN_SECONDS)
 
     async def route_request(self, request: dict):
+        # Authenticate request
+        if not request.get("token") or request.get("token") != os.getenv("API_TOKEN", ""):
+            raise HTTPException(status_code=401, detail="Unauthorized access")
         valid_providers = self._get_available_providers()
         if not valid_providers:
             raise HTTPException(status_code=429, detail="All providers are rate limited")
