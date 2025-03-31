@@ -31,6 +31,7 @@ class Router:
         self.model_failure_counts: Dict[Tuple[str, str], int] = {}
         self.model_stats: defaultdict[Any, dict[str, Any]] = defaultdict(
             lambda: {"successes": 0, "failures": 0, "input_tokens": 0, "generated_tokens": 0, "latencies": []}
+self.model_stats[model_key]["error_message"] = None
         )
 
     async def healthcheck(self):
