@@ -213,8 +213,26 @@ class Router:
             self.logger.error(f"Error with {provider.base_url}: {str(error)}")
             self._handle_rate_limit(provider, None, DEFAULT_COOLDOWN_SECONDS)
 
-    async def route_request(self, request: dict):
+    async def route_request(self, request: dict, token: str | None = None):
         valid_providers = self._get_available_providers()
+def _validate_token(self, token: str | None):
+        secret_token = os.getenv("API_SECRET_TOKEN", "TESTING")
+        if not token or token != secret_token:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+def _validate_token(self, token: str | None):
+        secret_token = os.getenv("API_SECRET_TOKEN", "TESTING")
+        if not token or token != secret_token:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+def _validate_token(self, token: str | None):
+        secret_token = os.getenv("API_SECRET_TOKEN", "TESTING")
+        if not token or token != secret_token:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+def _validate_token(self, token: str | None):
+        if not token or token != "TESTING":
+            raise HTTPException(status_code=401, detail="Unauthorized")
+def _validate_token(self, token: str | None):
+        if not token or token != "TESTING":
+            raise HTTPException(status_code=401, detail="Unauthorized")
         if not valid_providers:
             raise HTTPException(status_code=429, detail="All providers are rate limited")
 
