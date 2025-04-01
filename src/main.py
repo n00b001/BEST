@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 import coloredlogs
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request  # Import Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -11,6 +11,15 @@ from src.config import load_config
 from src.consts import PORT, LOG_LEVEL
 from src.router import Router
 from src.utils import truncate_dict
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+security = HTTPBearer()
+
+async def get_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    # Validate the token against the secret
+    if token != "your_secret_token_here":
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return token
 
 logger = logging.getLogger(__name__)
 coloredlogs.install(level=LOG_LEVEL, logger=logger)
@@ -32,7 +41,7 @@ app.add_middleware(
 
 
 @app.post("/v1/chat/completions")
-async def chat_completion(request: Request):  # Change to Request
+async def chat_completion(request: Request, token: str = Depends(get_token)):  # Change to Request
     router: Router = app.state.router
     try:
         trunc_request = await truncate_dict(await request.json())  # Get request body
