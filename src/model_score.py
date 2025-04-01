@@ -1,4 +1,13 @@
 import csv
+def fetch_leaderboard(urls: List[str], parser: callable) -> Dict[str, Dict[str, List[float]]]:
+    """Fetches and processes leaderboard data."""
+    scores: Dict[str, Dict[str, List[float]]] = {}
+    for url in urls:
+        data = fetch_json(url)
+        if not data:
+            continue
+        scores.update(parser(data))
+    return scores
 import io
 import logging
 import re
@@ -80,18 +89,10 @@ def fetch_text(url: str, timeout: int = 10) -> Optional[str]:
         return None
 
 
-@lru_cache(maxsize=1)
 def fetch_bigcodebench_leaderboard() -> Dict[str, Dict[str, List[float]]]:
     """Fetches scores from BigCodeBench leaderboards."""
-    urls = [
-        "https://bigcode-bench.github.io/results.json",
-        "https://bigcode-bench.github.io/results-hard.json",
-    ]
-    scores: Dict[str, Dict[str, List[float]]] = {}
-    for url in urls:
-        data = fetch_json(url)
-        if not data:
-            continue
+    def parse_data(data: Any) -> Dict[str, Dict[str, List[float]]]:
+        scores = {}
         for model_name, model_data in data.items():
             normalized = normalize_model_name(model_name)
             pass_at1 = model_data.get("pass@1", {})
@@ -104,7 +105,12 @@ def fetch_bigcodebench_leaderboard() -> Dict[str, Dict[str, List[float]]]:
                 scores[normalized].setdefault("complete", []).append(complete)
             except Exception as e:
                 logger.warning(f"Skipping {model_name}: {e}")
-    return scores
+        return scores
+
+    return fetch_leaderboard(
+        urls=["https://bigcode-bench.github.io/results.json", "https://bigcode-bench.github.io/results-hard.json"],
+        parser=parse_data
+    )
 
 
 @lru_cache(maxsize=1)
