@@ -4,7 +4,13 @@ adjustments:
   "gpt4turbopreview": 85          # OpenAI's best coding model (128k context)
   "deepseekr1": 100
   "deepseekr1zero": 90
-  "claude3.7sonnet": 100
+  "deepseekr1distill": 50
+  "deepseekr1distillllama": 60
+  "deepseekr1distillllama70b": 72
+  "deepseekr1distilllqwen": 70
+  "deepseekr1distilllqwen32b": 71
+  "thinking": 50
+  "reasoning": 50
   "claude3.6sonnet": 80
   "claude3.5sonnet": 70           
   "codestral2501": 99
