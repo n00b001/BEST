@@ -1,11 +1,13 @@
 # model-adjustments.yaml
 adjustments:
   # Top Tier Coding Models (Professional Grade)
-  "gpt4turbopreview": 100          # OpenAI's best coding model (128k context)
+  "gpt4turbopreview": 85          # OpenAI's best coding model (128k context)
   "deepseekr1": 100
-  "DeepSeekR1Zero": 100
-  "claude3.5sonnet": 100            # Anthropic's new coding leader
-  "codestral2501": 90
+  "deepseekr1zero": 90
+  "claude3.7sonnet": 100
+  "claude3.6sonnet": 80
+  "claude3.5sonnet": 70           
+  "codestral2501": 99
   "codestral2412": 85
   "codestral": 80
   "gpt40613": 95                   # Original GPT-4 code interpreter
