@@ -1,83 +1,55 @@
 # model-adjustments.yaml
 adjustments:
   # Top Tier Coding Models (Professional Grade)
-  "gpt4turbopreview": 85          # OpenAI's best coding model (128k context)
-  "deepseekr1": 100
-  "deepseekr1zero": 90
-  "deepseekr1distill": 50
-  "deepseekr1distillllama": 60
-  "deepseekr1distillllama70b": 72
-  "deepseekr1distilllqwen": 70
-  "deepseekr1distilllqwen32b": 71
-  "thinking": 50
-  "reasoning": 50
-  "claude3.6sonnet": 80
-  "claude3.5sonnet": 70           
-  "codestral2501": 99
-  "codestral2412": 85
-  "codestral": 80
-  "gpt40613": 95                   # Original GPT-4 code interpreter
-  "codestral22bv0.1": 97           # Mistral's coding specialist
-  "codellama70binstruct": 90        # Meta's top code model
-  "deepseekcoder33binstruct": 88   # Best at fill-in-middle coding
-  "codeqwen1.572bchat": 85          # Qwen's top coding model
-  "starcoder215b": 80               # BigCode's newest iteration
-  "geminipro": 50
-  "gemini": 40
-  "mistralsmall": 30
-  "mistral": 40
-  "llama": 30
-  "qwen2.5": 60
-  "qwen-2.5": 60
-  "qwen-2.5-coder": 60
-  "qwen-2.5-coder-32b": 60
-  "qwen-2.5-coder-32b-instruct": 60
-  "tiny": -10
-  "small": -5
-  "medium": 0
-  "large": 30
-  "coder": 30
-  "qwq": 60
-  "deepseekv3": 80
-  "olympiccoder": 10
+  "(?i)gpt-?4(-|_)turbo(preview)?"": 85
+  "(?i)deepseek(-|_)?r1": 100
+  "(?i)deepseek(-|_)?r1(-|_)?zero": 90
+  "(?i)deepseek(-|_)?r1(-|_)?distill": 50
+  "(?i)codestral(-|_)?(22b|24b|25b)": 97
+  "(?i)codestral": 80
+  "(?i)gpt-?4-0613": 95
+  "(?i)codellama(-|_)?70b.*instruct": 90
+  "(?i)deepseek(-|_)?coder(-|_)?33b.*instruct": 88
+  "(?i)codeqwen(-|_)?1\.5-72b.*chat": 85
+  "(?i)starcoder2(-|_)?15b": 80
 
   # Strong Mid-Tier Coding Models
-  "mixtral8x22binstruct": 84       # Large context (64k) coding
-  "wizardcoder33bv1.1": 78
-  "magicodersds6.7b": 77          # Synthetic code-trained model
-  "phindcodellama34bv2": 75   # Chat-Optimized Coding Models
-  "gpt3.5turbo0125": 50           # OpenAI's fastest coder
-  "claude2.1": 40                   # Previous gen Claude
-  "codebooga34b": 60
+  "(?i)mixtral(-|_)?8x22b.*instruct": 84
+  "(?i)wizardcoder(-|_)?33b.*v1\.1": 78
+  "(?i)phind.*codellama.*34b.*v2": 75
+  "(?i)gpt-?3\.5.*turbo": 50
 
-  # Specialized Coding Models
-  "starcoder3b": 25                  # Lightweight but capable
-  "replitcodev1.53b": 23
-  "codet5p16b": 20
+  # Vendor Models
+  "(?i)claude-?3(-|_)?(5|6).*sonnet": 80
+  "(?i)gemini(-|_)?pro": 50
+  "(?i)mistral(-|_)?small": 30
 
-  # Deprioritize Non-Coding/Base Models
-  "embed": -100                      # All embedding models
-  "dalle": -100                      # Image models
-  "whisper": -100                     # Audio models
-  "tts": -100                        # Text-to-speech
-  "moderation": -100                  # Content filters
-  "textdavinci003": -30             # Old completion-style
-  "llama27b": -20                  # Base non-code tuned
-  "auto": -3000                       # openrouter auto
-  "flux": -3000                       # openrouter auto
-  "stablediffusion": -100
+  # Size-based Adjustments
+  "(?i).*-tiny(-|_)": -10
+  "(?i).*-small(-|_)": -5
+  "(?i).*-medium(-|_)": 0
+  "(?i).*-large(-|_)": 30
 
-  # Version-Specific Adjustments
-  "gpt432k": 95                    # Legacy 32k context
-  "claude3opus": 95                # Powerful but not coding-specialized
-  "mixtral8x7binstruct": 63         # Previous Mixtral
+  # Specialized Models
+  "(?i).*coder.*": 30
+  "(?i).*qwq.*": 60
+  "(?i)deepseek(-|_)?v3": 80
 
-  # Vendor-Specific Coding Models
-  "gemmacode2b": 40                # Google's code model
-  "xwincoder34b": 52
-  "solar10.7binstruct": 47
+  # Deprioritization Patterns
+  "(?i).*embed.*": -100
+  "(?i).*dalle.*": -100
+  "(?i).*whisper.*": -100
+  "(?i).*tts.*": -100
+  "(?i)moderation": -100
+  "(?i).*auto.*": -3000
+  "(?i).*flux.*": -3000
+  "(?i).*stablediffusion.*": -100
 
-  # Deprioritize Non-Chat Formats
-  "base": -30                       # Base non-instruct models
-  "completion": -30                 # Completion-style endpoints
-  "pretrained": -30
+  # Version Handling
+  "(?i)gpt-?4.*32k": 95
+  "(?i)mixtral(-|_)?8x7b.*instruct": 63
+  "(?i)claude-?2\..*": 40
+
+  # Architecture Patterns
+  "(?i)\d+[bm]b": 20  # Matches any model size suffix (e.g. 7b, 70b)
+  "(?i)\d+x\d+[bm]": 25  # Matches mixture-of-expert patterns
