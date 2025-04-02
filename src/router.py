@@ -87,7 +87,7 @@ class Router:
         failure_rate = self._calculate_failure_rate(stats["successes"], stats["failures"])
 
         # Update aggregates
-        self._update_total_stats(total_stats, stats, latency_metrics["latencies"])
+        self._update_total_stats(total_stats, stats, latency_metrics)
 
         return {
             "base_url": base_url,
