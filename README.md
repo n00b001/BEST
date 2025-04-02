@@ -15,7 +15,7 @@ through a single, OpenAI-compatible API, simplifying integration and providing f
       here: [https://github.com/cheahjs/free-llm-api-resources](https://github.com/cheahjs/free-llm-api-resources)
 
 3. **Start the Service:**
-    - Run the gateway using: `uvicorn src.main:app`
+    - Run the gateway using: `uv run python -m uvicorn src.main:app --port 12345`
 
 4. **Use the API:**
     - Point your OpenAI client to the gateway:
@@ -60,7 +60,7 @@ through a single, OpenAI-compatible API, simplifying integration and providing f
 
 1. Configure your LLM providers in `config/meta-providers.yaml`
 2. Setup up your API keys in `.env`
-3. Start the service with `uvicorn src.main:app`
+3. Start the service with `uv run python -m uvicorn src.main:app --port 12345`
 4. Use it like you would the OpenAI API:
 
 ```python
@@ -73,7 +73,7 @@ openai.api_key = "any-key"  # Not used by gateway
 ## To develop:
 
 1. `uv sync --dev`
-2. `uvicorn src.main:app --reload`
+2. `uv run python -m uvicorn src.main:app --reload --port 12345`
 3. And after making code changes, run this before pushing (if it fails here, it will fail github actions) `uv run python -m autopep8 --exclude .venv -ri . && uv run python -m black --fast --color -l 120 . && uv run python -m mypy --exclude .venv --follow-untyped-imports --explicit-package-bases . && uv run python -m flake8 --exclude .venv --max-line-length 120 . && uv run python -m pylint --ignore .venv --output-format=colorized \
           --max-line-length 120 --fail-under 5 --fail-on E . && uv run python -m pytest --color yes --verbosity=3;`
 

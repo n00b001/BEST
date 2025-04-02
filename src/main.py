@@ -20,7 +20,7 @@ coloredlogs.install(level=LOG_LEVEL, logger=logger)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
-    scheduler.add_job(health_check, "interval", minutes=15)
+    scheduler.add_job(health_check, "interval", minutes=10)
     scheduler.start()
 
     app.state.router = Router(load_config())
@@ -36,6 +36,7 @@ app.add_middleware(
 )
 
 
+@app.post("/chat/completions")
 @app.post("/v1/chat/completions")
 async def chat_completion(request: dict):
     router: Router = app.state.router
@@ -74,6 +75,7 @@ async def stats():
 
 
 @app.get("/models")
+@app.get("/v1/models")
 async def models():
     router: Router = app.state.router
     try:

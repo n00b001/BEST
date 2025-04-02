@@ -39,6 +39,40 @@ class Router:
         return response.is_success
 
     async def models(self):
+        # todo: make this compliant with the OpenAI /models specification:
+        #   https://platform.openai.com/docs/api-reference/models/list
+        #   Example request
+        #       curl https://api.openai.com/v1/models \
+        #       -H "Authorization: Bearer $OPENAI_API_KEY"
+        #   Response
+        #       {
+        #         "object": "list",
+        #         "data": [
+        #           {
+        #             "id": "model-id-0",
+        #             "object": "model",
+        #             "created": 1686935002,
+        #             "owned_by": "organization-owner"
+        #           },
+        #           {
+        #             "id": "model-id-1",
+        #             "object": "model",
+        #             "created": 1686935002,
+        #             "owned_by": "organization-owner",
+        #           },
+        #           {
+        #             "id": "model-id-2",
+        #             "object": "model",
+        #             "created": 1686935002,
+        #             "owned_by": "openai"
+        #           },
+        #         ],
+        #         "object": "list"
+        #       }
+
+        # todo: please also add a model for 'priority-auto'.
+        #   when the API is called with this model
+        #   it will use the underlying models based on model priority
         # Collect model information from each provider
         models_list = [{"name": provider.model_name, "priority": provider.priority} for provider in self.providers]
         # Sort the models by their priority (ascending order)
@@ -54,7 +88,7 @@ class Router:
             "total_input_tokens": 0,
             "total_generated_tokens": 0,
             "all_latencies": [],
-            "available_count": 0
+            "available_count": 0,
         }
 
         for provider in self.providers:
@@ -68,7 +102,7 @@ class Router:
             "total_providers": len(self.providers),
             "available_providers": total_stats["available_count"],
             "timestamp": now.isoformat(),
-            "overall": overall_stats
+            "overall": overall_stats,
         }
 
     def _process_provider_stats(self, provider, now, total_stats):
@@ -102,7 +136,7 @@ class Router:
             "failure_rate": round(failure_rate, 2),
             "input_tokens": stats["input_tokens"],
             "generated_tokens": stats["generated_tokens"],
-            **latency_metrics
+            **latency_metrics,
         }
 
     def _calculate_cooldowns(self, base_url, model_key, now):
@@ -110,25 +144,24 @@ class Router:
             end_time = cooldown_dict.get(key)
             return max(0, (end_time - now).total_seconds()) if end_time and end_time > now else 0
 
-        return (
-            get_remaining(self.base_cooldowns, base_url),
-            get_remaining(self.model_cooldowns, model_key)
-        )
+        return (get_remaining(self.base_cooldowns, base_url), get_remaining(self.model_cooldowns, model_key))
 
     def _get_latency_metrics(self, latencies):
         metrics = {
             "min_latency": 0.0,
             "max_latency": 0.0,
             "mean_latency": 0.0,
-            "latencies": latencies  # Add the actual latencies list here
+            "latencies": latencies,  # Add the actual latencies list here
         }
 
         if latencies:
-            metrics.update({
-                "min_latency": round(min(latencies), 3),
-                "max_latency": round(max(latencies), 3),
-                "mean_latency": round(sum(latencies) / len(latencies), 3)
-            })
+            metrics.update(
+                {
+                    "min_latency": round(min(latencies), 3),
+                    "max_latency": round(max(latencies), 3),
+                    "mean_latency": round(sum(latencies) / len(latencies), 3),
+                }
+            )
 
         return metrics
 
@@ -150,13 +183,12 @@ class Router:
         return {
             "successful_calls": total_stats["total_successes"],
             "failed_calls": total_stats["total_failures"],
-            "failure_rate": round(self._calculate_failure_rate(
-                total_stats["total_successes"],
-                total_stats["total_failures"]
-            ), 2),
+            "failure_rate": round(
+                self._calculate_failure_rate(total_stats["total_successes"], total_stats["total_failures"]), 2
+            ),
             "input_tokens": total_stats["total_input_tokens"],
             "generated_tokens": total_stats["total_generated_tokens"],
-            **latency_metrics
+            **latency_metrics,
         }
 
     def _get_available_providers(self):
@@ -207,7 +239,7 @@ class Router:
         return response_json
 
     async def _handle_provider_error(
-            self, provider: ProviderConfig, error: Exception, response: Response | None, latency: float
+        self, provider: ProviderConfig, error: Exception, response: Response | None, latency: float
     ):
         model_key = (provider.base_url, provider.model_name)
         self.model_stats[model_key]["failures"] += 1
@@ -219,6 +251,66 @@ class Router:
             self._handle_rate_limit(provider, None, DEFAULT_COOLDOWN_SECONDS)
 
     async def route_request(self, request: dict):
+        # todo: previously we always ignored the model name provided in the API request
+        #   now we should use the model name
+        #   the model name can be a list of models, seperated by ','
+        #   for example: "gpt-4o,gpt-3,gpt-2" would use gpt-4o and if it can't, then gpt-3, and if it can't then gpt-2
+        #   if the model name is 'priority-auto' then use any model - based on priority (the old behaviour)
+
+        #   chat completion OpenAI API documentation: https://platform.openai.com/docs/api-reference/chat/create
+        #   request:
+        #       curl https://api.openai.com/v1/chat/completions \
+        #         -H "Content-Type: application/json" \
+        #         -H "Authorization: Bearer $OPENAI_API_KEY" \
+        #         -d '{
+        #           "model": "gpt-4o",
+        #           "messages": [
+        #             {
+        #               "role": "developer",
+        #               "content": "You are a helpful assistant."
+        #             },
+        #             {
+        #               "role": "user",
+        #               "content": "Hello!"
+        #             }
+        #           ]
+        #         }'
+        # Response
+        #       {
+        #         "id": "chatcmpl-B9MBs8CjcvOU2jLn4n570S5qMJKcT",
+        #         "object": "chat.completion",
+        #         "created": 1741569952,
+        #         "model": "gpt-4o-2024-08-06",
+        #         "choices": [
+        #           {
+        #             "index": 0,
+        #             "message": {
+        #               "role": "assistant",
+        #               "content": "Hello! How can I assist you today?",
+        #               "refusal": null,
+        #               "annotations": []
+        #             },
+        #             "logprobs": null,
+        #             "finish_reason": "stop"
+        #           }
+        #         ],
+        #         "usage": {
+        #           "prompt_tokens": 19,
+        #           "completion_tokens": 10,
+        #           "total_tokens": 29,
+        #           "prompt_tokens_details": {
+        #             "cached_tokens": 0,
+        #             "audio_tokens": 0
+        #           },
+        #           "completion_tokens_details": {
+        #             "reasoning_tokens": 0,
+        #             "audio_tokens": 0,
+        #             "accepted_prediction_tokens": 0,
+        #             "rejected_prediction_tokens": 0
+        #           }
+        #         },
+        #         "service_tier": "default"
+        #       }
         valid_providers = self._get_available_providers()
         if not valid_providers:
             raise HTTPException(status_code=429, detail="All providers are rate limited")
@@ -273,7 +365,7 @@ class Router:
         self.logger.warning(f"Base {base_url} cooldown until {cooldown_time} (failures: {current_failures})")
 
     def _apply_model_cooldown(
-            self, provider: ProviderConfig, response: Response | None, retry_after: int | None, default_cooldown: int
+        self, provider: ProviderConfig, response: Response | None, retry_after: int | None, default_cooldown: int
     ):
         model_key = (provider.base_url, provider.model_name)
         current_failures = self.model_failure_counts.get(model_key, 0) + 1

@@ -1,5 +1,15 @@
 # model-adjustments.yaml
 adjustments:
+#  ".*claude[-_]{0,1}3.7[-_]{0,1}sonnet[-_]{0,1}20250219.*": 100
+
+  # todo: add further structure here.
+  # todo: There should be top level model names, and lists of regex underneath them
+  # todo: there would be one priority per top level model name
+  # todo: the goal is to find at least one regex from each top level model that matches the model name
+  # todo: if there was a match, then apply the priority
+  # todo: more than one priority may be applied from multiple top level models
+  # todo: if multiple regex patterns match from one top level model, then only apply the priority once
+
   # Top Tier Coding Models (Professional Grade)
   "(?i)gpt-?4(-|_)turbo(preview)?"": 85
   "(?i)deepseek(-|_)?r1": 100
