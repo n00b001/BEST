@@ -138,11 +138,11 @@ def _calculate_model_priority(
 
     # Parameter-based scoring
     model_param_score = 0.0
-    if match := re.search(r"-(\d+)b", model_name):
+    if match := re.search(r"-(\d+)[bBmM]", model_name):
         model_param_score += float(match.group(1)) * MODEL_PARAM_SCORE_SCALAR
 
     # Mixtral-style model scoring
-    if x_match := re.search(r"(\d+)x(\d+)b", model_name):
+    if x_match := re.search(r"(\d+)x(\d+)[bBmM]", model_name):
         model_param_score += float(x_match.group(1)) * int(x_match.group(2)) * MODEL_PARAM_SCORE_SCALAR
 
     # Context length scoring
