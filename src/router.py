@@ -48,91 +48,116 @@ class Router:
     async def stats(self):
         now = datetime.now()
         providers_stats = []
-        available_count = 0
-        # Initialize overall stats
-        total_successes = 0
-        total_failures = 0
-        total_input_tokens = 0
-        total_generated_tokens = 0
-        all_latencies = []
+        total_stats = {
+            "total_successes": 0,
+            "total_failures": 0,
+            "total_input_tokens": 0,
+            "total_generated_tokens": 0,
+            "all_latencies": [],
+            "available_count": 0
+        }
+
         for provider in self.providers:
-            base_url = provider.base_url
-            model_name = provider.model_name
-            model_key = (base_url, model_name)
-            # Cooldown calculations
-            base_cooldown_end = self.base_cooldowns.get(base_url)
-            base_remaining = (
-                max(0, (base_cooldown_end - now).total_seconds())
-                if base_cooldown_end and base_cooldown_end > now
-                else 0
-            )
-            model_cooldown_end = self.model_cooldowns.get(model_key)
-            model_remaining = (
-                max(0, (model_cooldown_end - now).total_seconds())
-                if model_cooldown_end and model_cooldown_end > now
-                else 0
-            )
-            is_available = base_remaining <= 0 and model_remaining <= 0
-            if is_available:
-                available_count += 1
-            # Get model-specific stats
-            stats = self.model_stats[model_key]
-            successes = stats["successes"]
-            failures = stats["failures"]
-            total_calls = successes + failures
-            failure_rate = (failures / total_calls * 100) if total_calls > 0 else 0.0
-            latencies = stats["latencies"]
-            min_latency = min(latencies) if latencies else 0
-            max_latency = max(latencies) if latencies else 0
-            mean_latency = (sum(latencies) / len(latencies)) if latencies else 0
-            # Update overall aggregates
-            total_successes += successes
-            total_failures += failures
-            total_input_tokens += stats["input_tokens"]
-            total_generated_tokens += stats["generated_tokens"]
-            all_latencies.extend(latencies)
-            # Build provider stats entry
-            provider_stats = {
-                "base_url": base_url,
-                "model_name": model_name,
-                "base_cooldown_remaining": base_remaining,
-                "model_cooldown_remaining": model_remaining,
-                "base_failures": self.base_failure_counts.get(base_url, 0),
-                "model_failures": self.model_failure_counts.get(model_key, 0),
-                "is_available": is_available,
-                "successful_calls": successes,
-                "failed_calls": failures,
-                "failure_rate": round(failure_rate, 2),
-                "input_tokens": stats["input_tokens"],
-                "generated_tokens": stats["generated_tokens"],
-                "min_latency": round(min_latency, 3),
-                "max_latency": round(max_latency, 3),
-                "mean_latency": round(mean_latency, 3),
-            }
+            provider_stats = self._process_provider_stats(provider, now, total_stats)
             providers_stats.append(provider_stats)
-        # Calculate overall metrics
-        total_calls = total_successes + total_failures
-        overall_failure_rate = (total_failures / total_calls * 100) if total_calls > 0 else 0.0
-        overall_min_latency = min(all_latencies) if all_latencies else 0
-        overall_max_latency = max(all_latencies) if all_latencies else 0
-        overall_mean_latency = (sum(all_latencies) / len(all_latencies)) if all_latencies else 0
-        stats_dict = {
+
+        overall_stats = self._calculate_overall_stats(total_stats)
+
+        return {
             "providers": providers_stats,
             "total_providers": len(self.providers),
-            "available_providers": available_count,
+            "available_providers": total_stats["available_count"],
             "timestamp": now.isoformat(),
-            "overall": {
-                "successful_calls": total_successes,
-                "failed_calls": total_failures,
-                "failure_rate": round(overall_failure_rate, 2),
-                "input_tokens": total_input_tokens,
-                "generated_tokens": total_generated_tokens,
-                "min_latency": round(overall_min_latency, 3),
-                "max_latency": round(overall_max_latency, 3),
-                "mean_latency": round(overall_mean_latency, 3),
-            },
+            "overall": overall_stats
         }
-        return stats_dict
+
+    def _process_provider_stats(self, provider, now, total_stats):
+        base_url = provider.base_url
+        model_key = (base_url, provider.model_name)
+
+        base_remaining, model_remaining = self._calculate_cooldowns(base_url, model_key, now)
+        is_available = base_remaining <= 0 and model_remaining <= 0
+        stats = self.model_stats[model_key]
+
+        if is_available:
+            total_stats["available_count"] += 1
+
+        # Calculate metrics
+        latency_metrics = self._get_latency_metrics(stats["latencies"])
+        failure_rate = self._calculate_failure_rate(stats["successes"], stats["failures"])
+
+        # Update aggregates
+        self._update_total_stats(total_stats, stats, latency_metrics["latencies"])
+
+        return {
+            "base_url": base_url,
+            "model_name": provider.model_name,
+            "base_cooldown_remaining": base_remaining,
+            "model_cooldown_remaining": model_remaining,
+            "base_failures": self.base_failure_counts.get(base_url, 0),
+            "model_failures": self.model_failure_counts.get(model_key, 0),
+            "is_available": is_available,
+            "successful_calls": stats["successes"],
+            "failed_calls": stats["failures"],
+            "failure_rate": round(failure_rate, 2),
+            "input_tokens": stats["input_tokens"],
+            "generated_tokens": stats["generated_tokens"],
+            **latency_metrics
+        }
+
+    def _calculate_cooldowns(self, base_url, model_key, now):
+        def get_remaining(cooldown_dict, key):
+            end_time = cooldown_dict.get(key)
+            return max(0, (end_time - now).total_seconds()) if end_time and end_time > now else 0
+
+        return (
+            get_remaining(self.base_cooldowns, base_url),
+            get_remaining(self.model_cooldowns, model_key)
+        )
+
+    def _get_latency_metrics(self, latencies):
+        metrics = {
+            "min_latency": 0.0,
+            "max_latency": 0.0,
+            "mean_latency": 0.0,
+            "latencies": latencies  # Add the actual latencies list here
+        }
+
+        if latencies:
+            metrics.update({
+                "min_latency": round(min(latencies), 3),
+                "max_latency": round(max(latencies), 3),
+                "mean_latency": round(sum(latencies) / len(latencies), 3)
+            })
+
+        return metrics
+
+    def _calculate_failure_rate(self, successes, failures):
+        total = successes + failures
+        return (failures / total * 100) if total > 0 else 0.0
+
+    def _update_total_stats(self, total_stats, stats, latency_metrics):
+        total_stats["total_successes"] += stats["successes"]
+        total_stats["total_failures"] += stats["failures"]
+        total_stats["total_input_tokens"] += stats["input_tokens"]
+        total_stats["total_generated_tokens"] += stats["generated_tokens"]
+        # Use the latencies list from metrics
+        total_stats["all_latencies"].extend(latency_metrics["latencies"])
+
+    def _calculate_overall_stats(self, total_stats):
+        latency_metrics = self._get_latency_metrics(total_stats["all_latencies"])
+
+        return {
+            "successful_calls": total_stats["total_successes"],
+            "failed_calls": total_stats["total_failures"],
+            "failure_rate": round(self._calculate_failure_rate(
+                total_stats["total_successes"],
+                total_stats["total_failures"]
+            ), 2),
+            "input_tokens": total_stats["total_input_tokens"],
+            "generated_tokens": total_stats["total_generated_tokens"],
+            **latency_metrics
+        }
 
     def _get_available_providers(self):
         now = datetime.now()
