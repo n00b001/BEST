@@ -17,17 +17,21 @@ from src.utils import truncate_dict
 logger = logging.getLogger(__name__)
 coloredlogs.install(level=LOG_LEVEL, logger=logger)
 
+
 def external_health_check():
     response = requests.get(EXTERNAL_HEALTHCHECK_URL)
     response.raise_for_status()
     if not response.ok:
         raise RuntimeError(f"status_code: {response.status_code} text {response.text}")
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
     scheduler.add_job(
-        external_health_check, "interval", minutes=10,
+        external_health_check,
+        "interval",
+        minutes=10,
     )
     scheduler.start()
 
