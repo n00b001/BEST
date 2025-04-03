@@ -4,10 +4,13 @@ adjustments:
     priority: 95
     regex:
       - ".*deepseek[-_ ]{0,1}r1.*"
+  "Search":
+    priority: -100
+    regex:
+      - ".*search.*"
   "Distill":
     priority: -100
     regex:
-#      - "^(?!.*distill).*"
       - ".*distill.*"
   "zero":
     priority: -100
