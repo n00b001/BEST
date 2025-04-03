@@ -14,7 +14,7 @@ from .consts import (
     LOG_LEVEL,
     DEFAULT_COOLDOWN_SECONDS,
     BAD_REQUEST_COOLDOWN_SECONDS,
-    EXTERNAL_HEALTHCHECK_URL, INTERNAL_HEALTHCHECK_URL,
+    NON_PROJECT_HEALTHCHECK_URL,
 )
 
 
@@ -33,11 +33,8 @@ class Router:
             lambda: {"successes": 0, "failures": 0, "input_tokens": 0, "generated_tokens": 0, "latencies": []}
         )
 
-    async def healthcheck(self, is_external=False):
-        if is_external:
-            response = await self.client.get(url=EXTERNAL_HEALTHCHECK_URL)
-        else:
-            response = await self.client.get(url=INTERNAL_HEALTHCHECK_URL)
+    async def healthcheck(self):
+        response = await self.client.get(url=NON_PROJECT_HEALTHCHECK_URL)
         response.raise_for_status()
         return response.is_success
 
@@ -51,20 +48,17 @@ class Router:
                     "id": model_id,
                     "object": "model",
                     "created": 1686935002,  # Example timestamp
-                    "owned_by": urlparse(provider.base_url).netloc
+                    "owned_by": urlparse(provider.base_url).netloc,
                 }
         # Add priority-auto model
         unique_models["priority-auto"] = {
             "id": "priority-auto",
             "object": "model",
             "created": 1686935002,
-            "owned_by": "proxy-system"
+            "owned_by": "proxy-system",
         }
         models_list = list(unique_models.values())
-        return {
-            "object": "list",
-            "data": models_list
-        }
+        return {"object": "list", "data": models_list}
 
     async def stats(self):
         now = datetime.now()
@@ -75,7 +69,7 @@ class Router:
             "total_input_tokens": 0,
             "total_generated_tokens": 0,
             "all_latencies": [],
-            "available_count": 0
+            "available_count": 0,
         }
 
         for provider in self.providers:
@@ -89,7 +83,7 @@ class Router:
             "total_providers": len(self.providers),
             "available_providers": total_stats["available_count"],
             "timestamp": now.isoformat(),
-            "overall": overall_stats
+            "overall": overall_stats,
         }
 
     def _process_provider_stats(self, provider, now, total_stats):
@@ -124,7 +118,7 @@ class Router:
             "failure_rate": round(failure_rate, 2),
             "input_tokens": stats["input_tokens"],
             "generated_tokens": stats["generated_tokens"],
-            **latency_metrics
+            **latency_metrics,
         }
 
     def _calculate_cooldowns(self, base_url, model_key, now):
@@ -132,25 +126,24 @@ class Router:
             end_time = cooldown_dict.get(key)
             return max(0, (end_time - now).total_seconds()) if end_time and end_time > now else 0
 
-        return (
-            get_remaining(self.base_cooldowns, base_url),
-            get_remaining(self.model_cooldowns, model_key)
-        )
+        return (get_remaining(self.base_cooldowns, base_url), get_remaining(self.model_cooldowns, model_key))
 
     def _get_latency_metrics(self, latencies):
         metrics = {
             "min_latency": 0.0,
             "max_latency": 0.0,
             "mean_latency": 0.0,
-            "latencies": latencies  # Add the actual latencies list here
+            "latencies": latencies,  # Add the actual latencies list here
         }
 
         if latencies:
-            metrics.update({
-                "min_latency": round(min(latencies), 3),
-                "max_latency": round(max(latencies), 3),
-                "mean_latency": round(sum(latencies) / len(latencies), 3)
-            })
+            metrics.update(
+                {
+                    "min_latency": round(min(latencies), 3),
+                    "max_latency": round(max(latencies), 3),
+                    "mean_latency": round(sum(latencies) / len(latencies), 3),
+                }
+            )
 
         return metrics
 
@@ -172,13 +165,12 @@ class Router:
         return {
             "successful_calls": total_stats["total_successes"],
             "failed_calls": total_stats["total_failures"],
-            "failure_rate": round(self._calculate_failure_rate(
-                total_stats["total_successes"],
-                total_stats["total_failures"]
-            ), 2),
+            "failure_rate": round(
+                self._calculate_failure_rate(total_stats["total_successes"], total_stats["total_failures"]), 2
+            ),
             "input_tokens": total_stats["total_input_tokens"],
             "generated_tokens": total_stats["total_generated_tokens"],
-            **latency_metrics
+            **latency_metrics,
         }
 
     def _get_available_providers(self):
@@ -229,7 +221,7 @@ class Router:
         return response_json
 
     async def _handle_provider_error(
-            self, provider: ProviderConfig, error: Exception, response: Response | None, latency: float
+        self, provider: ProviderConfig, error: Exception, response: Response | None, latency: float
     ):
         model_key = (provider.base_url, provider.model_name)
         self.model_stats[model_key]["failures"] += 1
@@ -244,22 +236,13 @@ class Router:
         model_param = request.get("model", "priority-auto")
 
         if model_param == "priority-auto":
-            providers_to_try = sorted(
-                self._get_available_providers(),
-                key=lambda p: p.priority["overall_score"]
-            )
+            providers_to_try = sorted(self._get_available_providers(), key=lambda p: p.priority["overall_score"])
         else:
             model_names = [name.strip() for name in model_param.split(",")]
             providers_to_try = []
             for model_name in model_names:
-                model_providers = [
-                    p for p in self._get_available_providers()
-                    if model_name in p.model_name
-                ]
-                sorted_providers = sorted(
-                    model_providers,
-                    key=lambda p: p.priority["overall_score"]
-                )
+                model_providers = [p for p in self._get_available_providers() if model_name in p.model_name]
+                sorted_providers = sorted(model_providers, key=lambda p: p.priority["overall_score"])
                 providers_to_try.extend(sorted_providers)
 
         if not providers_to_try:
@@ -317,7 +300,7 @@ class Router:
         self.logger.warning(f"Base {base_url} cooldown until {cooldown_time} (failures: {current_failures})")
 
     def _apply_model_cooldown(
-            self, provider: ProviderConfig, response: Response | None, retry_after: int | None, default_cooldown: int
+        self, provider: ProviderConfig, response: Response | None, retry_after: int | None, default_cooldown: int
     ):
         model_key = (provider.base_url, provider.model_name)
         current_failures = self.model_failure_counts.get(model_key, 0) + 1

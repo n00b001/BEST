@@ -132,7 +132,7 @@ def _process_provider_models(provider: dict, model_data_list: list, model_adjust
 
 
 def _calculate_model_priority(
-        provider: dict, model_name: str, context_length: int, model_adjustments: dict
+    provider: dict, model_name: str, context_length: int, model_adjustments: dict
 ) -> dict[str, float]:
     leaderboard_score = get_leaderboard_score(model_name) * MODEL_LEADERBOARD_SCORE_SCALAR
 
