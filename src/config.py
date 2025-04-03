@@ -132,7 +132,7 @@ def _process_provider_models(provider: dict, model_data_list: list, model_adjust
 
 
 def _calculate_model_priority(
-    provider: dict, model_name: str, context_length: int, model_adjustments: dict
+        provider: dict, model_name: str, context_length: int, model_adjustments: dict
 ) -> dict[str, float]:
     leaderboard_score = get_leaderboard_score(model_name) * MODEL_LEADERBOARD_SCORE_SCALAR
 
@@ -150,14 +150,20 @@ def _calculate_model_priority(
 
     # Apply global model adjustments with regex matching
     model_adjustment_score = 0.0
-    for adjust_key, adjust_value in model_adjustments.items():
-        try:
-            pattern = re.compile(adjust_key, re.IGNORECASE)
-            if pattern.search(model_name):
-                model_adjustment_score += adjust_value
-        except re.error as e:
-            logger.error(f"Invalid regex pattern '{adjust_key}': {e}")
-            continue
+    for group_name, group_config in model_adjustments.items():
+        group_priority = group_config["priority"]
+        regex_patterns = group_config["regex"]
+
+        for pattern_str in regex_patterns:
+            try:
+                pattern = re.compile(pattern_str, re.IGNORECASE)
+                if pattern.search(model_name):
+                    logger.info(f"{pattern_str} matched: {model_name}, adding: {group_priority}")
+                    model_adjustment_score += group_priority
+                    break  # Only apply once per model group if any pattern matches
+            except re.error as e:
+                logger.error(f"Invalid regex pattern '{pattern_str}': {e}")
+                continue
 
     model_adjustment_score *= MODEL_ADJUSTMENT_SCALAR
 
