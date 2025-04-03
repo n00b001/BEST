@@ -249,11 +249,9 @@ class Router:
             model_names = [name.strip() for name in model_param.split(",")]
             providers_to_try = []
             for model_name in model_names:
-                # todo: instead of using "if p.model_name == model_name"
-                #  - please use the regex in 'model-adjustments.yaml'
                 model_providers = [
                     p for p in self._get_available_providers()
-                    if p.model_name == model_name
+                    if model_name in p.model_name
                 ]
                 sorted_providers = sorted(
                     model_providers,
