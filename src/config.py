@@ -45,6 +45,10 @@ class ProviderConfig(BaseModel):
 
     def __hash__(self):
         return hash(f"{self.api_key}{self.base_url}{self.model_name}{str(property)}")
+    def __repr__(self):
+        return str(self)
+    def __str__(self):
+        return f"{self.model_name}"
 
 
 def _load_model_adjustments(model_adjustments_filename) -> dict:
@@ -230,17 +234,16 @@ def load_config() -> List[ProviderConfig]:
             )
         )
 
-    providers_before_filter = len(providers)
-    # remove providers with a priority <1
-    filtered_providers = [p for p in providers if p.priority["overall_score"] > 0]
-    providers_after_filter = len(filtered_providers)
-    providers_filtered = providers_before_filter - providers_after_filter
-    if providers_filtered > 0:
-        logger.warning(f"Removed {providers_filtered} providers where score < 1")
-        providers_removed = list(set(providers).difference(set(filtered_providers)))
-        for p in providers_removed:
-            logger.debug(p)
-
     # the higher the priority, the more likely the provider should be used
     providers.sort(key=lambda x: x.priority["overall_score"], reverse=True)
+
+    # remove providers with a priority <1
+    high_scoring_providers = set([p for p in providers if p.priority["overall_score"] > 0])
+    low_scoring_providers = set(providers).difference(high_scoring_providers)
+
+    if len(low_scoring_providers) > 0:
+        logger.warning(f"Removed {len(low_scoring_providers)} providers where score < 1")
+        for p in low_scoring_providers:
+            logger.debug(p)
+
     return providers

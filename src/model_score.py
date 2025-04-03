@@ -31,7 +31,7 @@ SESSION.headers.update(HEADERS)
 def normalize_model_name(name: str) -> str:
     """Normalizes a model name by stripping whitespace, converting to lowercase,
     and removing non-alphanumeric characters."""
-    name = name.strip().lower()
+    name = name.split("/")[-1].strip().lower()
     return re.sub(r"[^a-z0-9]", "", name)
 
 
