@@ -14,7 +14,7 @@ from .consts import (
     LOG_LEVEL,
     DEFAULT_COOLDOWN_SECONDS,
     BAD_REQUEST_COOLDOWN_SECONDS,
-    EXTERNAL_HEALTHCHECK_URL, INTERNAL_HEALTHCHECK_URL,
+    EXTERNAL_HEALTHCHECK_URL, NON_PROJECT_HEALTHCHECK_URL,
 )
 
 
@@ -33,11 +33,8 @@ class Router:
             lambda: {"successes": 0, "failures": 0, "input_tokens": 0, "generated_tokens": 0, "latencies": []}
         )
 
-    async def healthcheck(self, is_external=False):
-        if is_external:
-            response = await self.client.get(url=EXTERNAL_HEALTHCHECK_URL)
-        else:
-            response = await self.client.get(url=INTERNAL_HEALTHCHECK_URL)
+    async def healthcheck(self):
+        response = await self.client.get(url=NON_PROJECT_HEALTHCHECK_URL)
         response.raise_for_status()
         return response.is_success
 
