@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 import coloredlogs
 import uvicorn
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -18,6 +19,10 @@ coloredlogs.install(level=LOG_LEVEL, logger=logger)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(health_check, "interval", minutes=10)
+    scheduler.start()
+
     app.state.router = Router(load_config())
     yield
 
@@ -31,6 +36,7 @@ app.add_middleware(
 )
 
 
+@app.post("/chat/completions")
 @app.post("/v1/chat/completions")
 async def chat_completion(request: dict):
     router: Router = app.state.router
@@ -53,6 +59,11 @@ async def health_check():
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
+@app.get("/ok")
+async def ok():
+    return {"status": "ok"}
+
+
 @app.get("/stats")
 async def stats():
     router: Router = app.state.router
@@ -64,6 +75,7 @@ async def stats():
 
 
 @app.get("/models")
+@app.get("/v1/models")
 async def models():
     router: Router = app.state.router
     try:

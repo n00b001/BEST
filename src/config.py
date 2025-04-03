@@ -132,7 +132,7 @@ def _process_provider_models(provider: dict, model_data_list: list, model_adjust
 
 
 def _calculate_model_priority(
-    provider: dict, model_name: str, context_length: int, model_adjustments: dict
+        provider: dict, model_name: str, context_length: int, model_adjustments: dict
 ) -> dict[str, float]:
     leaderboard_score = get_leaderboard_score(model_name) * MODEL_LEADERBOARD_SCORE_SCALAR
 
@@ -148,20 +148,24 @@ def _calculate_model_priority(
     # Context length scoring
     model_context_score = context_length * MODEL_CTX_SCORE_SCALAR
 
-    # Apply global model adjustments with fuzzy matching
-    normalized_model = re.sub(r"\W+", "", model_name).lower()
-    matches = []
-
-    for adjust_key, adjust_value in model_adjustments.items():
-        normalized_key = re.sub(r"\W+", "", adjust_key).lower()
-        if normalized_key in normalized_model:
-            matches.append((len(normalized_key), adjust_value))
-
+    # Apply global model adjustments with regex matching
     model_adjustment_score = 0.0
-    if matches:
-        # Use longest match to prioritize specific variants
-        matches.sort(reverse=True, key=lambda x: x[0])
-        model_adjustment_score += matches[0][1] * MODEL_ADJUSTMENT_SCALAR
+    for group_name, group_config in model_adjustments.items():
+        group_priority = group_config["priority"]
+        regex_patterns = group_config["regex"]
+
+        for pattern_str in regex_patterns:
+            try:
+                pattern = re.compile(pattern_str, re.IGNORECASE)
+                if pattern.search(model_name):
+                    logger.info(f"{pattern_str} matched: {model_name}, adding: {group_priority}")
+                    model_adjustment_score += group_priority
+                    break  # Only apply once per model group if any pattern matches
+            except re.error as e:
+                logger.error(f"Invalid regex pattern '{pattern_str}': {e}")
+                continue
+
+    model_adjustment_score *= MODEL_ADJUSTMENT_SCALAR
 
     overall_score = (leaderboard_score + model_param_score + model_context_score + model_adjustment_score) * provider[
         "base_priority"

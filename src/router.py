@@ -39,11 +39,29 @@ class Router:
         return response.is_success
 
     async def models(self):
-        # Collect model information from each provider
-        models_list = [{"name": provider.model_name, "priority": provider.priority} for provider in self.providers]
-        # Sort the models by their priority (ascending order)
-        models_list.sort(key=lambda x: x["priority"]["overall_score"])
-        return models_list
+        unique_models = {}
+        # Collect provider models
+        for provider in self.providers:
+            model_id = provider.model_name
+            if model_id not in unique_models:
+                unique_models[model_id] = {
+                    "id": model_id,
+                    "object": "model",
+                    "created": 1686935002,  # Example timestamp
+                    "owned_by": urlparse(provider.base_url).netloc
+                }
+        # Add priority-auto model
+        unique_models["priority-auto"] = {
+            "id": "priority-auto",
+            "object": "model",
+            "created": 1686935002,
+            "owned_by": "proxy-system"
+        }
+        models_list = list(unique_models.values())
+        return {
+            "object": "list",
+            "data": models_list
+        }
 
     async def stats(self):
         now = datetime.now()
@@ -87,9 +105,10 @@ class Router:
         failure_rate = self._calculate_failure_rate(stats["successes"], stats["failures"])
 
         # Update aggregates
-        self._update_total_stats(total_stats, stats, latency_metrics["latencies"])
+        self._update_total_stats(total_stats, stats, latency_metrics)
 
         return {
+            "priority": provider.priority,
             "base_url": base_url,
             "model_name": provider.model_name,
             "base_cooldown_remaining": base_remaining,
@@ -219,10 +238,31 @@ class Router:
             self._handle_rate_limit(provider, None, DEFAULT_COOLDOWN_SECONDS)
 
     async def route_request(self, request: dict):
-        valid_providers = self._get_available_providers()
-        if not valid_providers:
+        model_param = request.get("model", "priority-auto")
+
+        if model_param == "priority-auto":
+            providers_to_try = sorted(
+                self._get_available_providers(),
+                key=lambda p: p.priority["overall_score"]
+            )
+        else:
+            model_names = [name.strip() for name in model_param.split(",")]
+            providers_to_try = []
+            for model_name in model_names:
+                model_providers = [
+                    p for p in self._get_available_providers()
+                    if model_name in p.model_name
+                ]
+                sorted_providers = sorted(
+                    model_providers,
+                    key=lambda p: p.priority["overall_score"]
+                )
+                providers_to_try.extend(sorted_providers)
+
+        if not providers_to_try:
             raise HTTPException(status_code=429, detail="All providers are rate limited")
-        for provider in valid_providers:
+
+        for provider in providers_to_try:
             start_time = datetime.now()
             try:
                 response = await self._make_request(provider, request)
@@ -232,6 +272,7 @@ class Router:
             except Exception as e:
                 latency = (datetime.now() - start_time).total_seconds()
                 await self._handle_provider_error(provider, e, response, latency)
+
         raise HTTPException(status_code=429, detail="All providers rate limited")
 
     def _reset_failure_counts(self, provider: ProviderConfig):

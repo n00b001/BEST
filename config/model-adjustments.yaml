@@ -1,77 +1,123 @@
 # model-adjustments.yaml
 adjustments:
-  # Top Tier Coding Models (Professional Grade)
-  "gpt4turbopreview": 85          # OpenAI's best coding model (128k context)
-  "deepseekr1": 100
-  "deepseekr1zero": 90
-  "claude3.7sonnet": 100
-  "claude3.6sonnet": 80
-  "claude3.5sonnet": 70           
-  "codestral2501": 99
-  "codestral2412": 85
-  "codestral": 80
-  "gpt40613": 95                   # Original GPT-4 code interpreter
-  "codestral22bv0.1": 97           # Mistral's coding specialist
-  "codellama70binstruct": 90        # Meta's top code model
-  "deepseekcoder33binstruct": 88   # Best at fill-in-middle coding
-  "codeqwen1.572bchat": 85          # Qwen's top coding model
-  "starcoder215b": 80               # BigCode's newest iteration
-  "geminipro": 50
-  "gemini": 40
-  "mistralsmall": 30
-  "mistral": 40
-  "llama": 30
-  "qwen2.5": 60
-  "qwen-2.5": 60
-  "qwen-2.5-coder": 60
-  "qwen-2.5-coder-32b": 60
-  "qwen-2.5-coder-32b-instruct": 60
-  "tiny": -10
-  "small": -5
-  "medium": 0
-  "large": 30
-  "coder": 30
-  "qwq": 60
-  "deepseekv3": 80
-  "olympiccoder": 10
-
-  # Strong Mid-Tier Coding Models
-  "mixtral8x22binstruct": 84       # Large context (64k) coding
-  "wizardcoder33bv1.1": 78
-  "magicodersds6.7b": 77          # Synthetic code-trained model
-  "phindcodellama34bv2": 75   # Chat-Optimized Coding Models
-  "gpt3.5turbo0125": 50           # OpenAI's fastest coder
-  "claude2.1": 40                   # Previous gen Claude
-  "codebooga34b": 60
-
-  # Specialized Coding Models
-  "starcoder3b": 25                  # Lightweight but capable
-  "replitcodev1.53b": 23
-  "codet5p16b": 20
-
-  # Deprioritize Non-Coding/Base Models
-  "embed": -100                      # All embedding models
-  "dalle": -100                      # Image models
-  "whisper": -100                     # Audio models
-  "tts": -100                        # Text-to-speech
-  "moderation": -100                  # Content filters
-  "textdavinci003": -30             # Old completion-style
-  "llama27b": -20                  # Base non-code tuned
-  "auto": -3000                       # openrouter auto
-  "flux": -3000                       # openrouter auto
-  "stablediffusion": -100
-
-  # Version-Specific Adjustments
-  "gpt432k": 95                    # Legacy 32k context
-  "claude3opus": 95                # Powerful but not coding-specialized
-  "mixtral8x7binstruct": 63         # Previous Mixtral
-
-  # Vendor-Specific Coding Models
-  "gemmacode2b": 40                # Google's code model
-  "xwincoder34b": 52
-  "solar10.7binstruct": 47
-
-  # Deprioritize Non-Chat Formats
-  "base": -30                       # Base non-instruct models
-  "completion": -30                 # Completion-style endpoints
-  "pretrained": -30
+  "Deepseek R1":
+    priority: 95
+    regex:
+      - ".*deepseek[-_ ]{0,1}r1.*"
+  "Distill":
+    priority: -100
+    regex:
+#      - "^(?!.*distill).*"
+      - ".*distill.*"
+  "zero":
+    priority: -100
+    regex:
+      - ".*zero.*"
+  "mini":
+    priority: -100
+    regex:
+      - ".*mini.*"
+#  "No zero":
+#    priority: 10
+#    regex:
+#      - "^(?!.*zero).*"
+  "Embedding":
+    priority: -10000
+    regex:
+      - ".*embed.*"
+  "Image":
+    priority: -10000
+    regex:
+      - ".*image.*"
+  "TTS":
+    priority: -10000
+    regex:
+      - ".*tts.*"
+  "GPT-4o":
+    priority: 91
+    regex:
+      - ".*gpt[-_ ]{0,1}4o.*"
+  "GPT-4":
+    priority: 90
+    regex:
+      - ".*gpt[-_ ]{0,1}4.*"
+  "Claude 3.5 Sonnet":
+    priority: 92
+    regex:
+      - ".*claude[-_ ]{0,1}3\\.5[-_ ]{0,1}sonnet.*"
+  "Claude 3.5 Haiku":
+    priority: 88
+    regex:
+      - ".*claude[-_ ]{0,1}3\\.5[-_ ]{0,1}haiku.*"
+  "Claude 3 Opus":
+    priority: 89
+    regex:
+      - ".*claude[-_ ]{0,1}3[-_ ]{0,1}opus.*"
+  "Claude 3 Sonnet":
+    priority: 87
+    regex:
+      - ".*claude[-_ ]{0,1}3[-_ ]{0,1}sonnet.*"
+  "Claude 3 Haiku":
+    priority: 85
+    regex:
+      - ".*claude[-_ ]{0,1}3[-_ ]{0,1}haiku.*"
+  "Mixtral 8x22B":
+    priority: 88
+    regex:
+      - ".*mixtral[-_ ]{0,1}8x22b.*"
+  "Mixtral 8x7B":
+    priority: 82
+    regex:
+      - ".*mixtral[-_ ]{0,1}8x7b.*"
+  "Codestral":
+    priority: 89
+    regex:
+      - ".*codestral.*"
+  "Gemini Pro 1.5":
+    priority: 87
+    regex:
+      - ".*gemini[-_ ]{0,1}pro[-_ ]{0,1}1\\.5.*"
+  "Gemini Flash 1.5":
+    priority: 85
+    regex:
+      - ".*gemini[-_ ]{0,1}flash[-_ ]{0,1}1\\.5.*"
+  "Command R+":
+    priority: 86
+    regex:
+      - ".*command[-_ ]{0,1}r\\+.*"
+  "Command R":
+    priority: 84
+    regex:
+      - ".*command[-_ ]{0,1}r.*"
+  "Llama 3.3 70B":
+    priority: 85
+    regex:
+      - ".*llama[-_ ]{0,1}3\\.3[-_ ]{0,1}70b.*"
+  "Llama 3.1 70B":
+    priority: 83
+    regex:
+      - ".*llama[-_ ]{0,1}3\\.1[-_ ]{0,1}70b.*"
+  "Llama 3 70B":
+    priority: 82
+    regex:
+      - ".*llama[-_ ]{0,1}3[-_ ]{0,1}70b.*"
+  "Qwen 2.5 72B":
+    priority: 83
+    regex:
+      - ".*qwen[-_ ]{0,1}2\\.5[-_ ]{0,1}72b.*"
+  "Phi-3":
+    priority: 84
+    regex:
+      - ".*phi[-_ ]{0,1}3.*"
+  "Llama 2 70B":
+    priority: 78
+    regex:
+      - ".*llama[-_ ]{0,1}2[-_ ]{0,1}70b.*"
+  "Claude 2":
+    priority: 78
+    regex:
+      - ".*claude[-_ ]{0,1}2.*"
+  "GPT-3.5":
+    priority: 75
+    regex:
+      - ".*gpt[-_ ]{0,1}3\\.5.*"
