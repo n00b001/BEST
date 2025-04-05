@@ -1,17 +1,14 @@
-import csv
 import io
 import logging
-import re
-from collections import defaultdict
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Generator, Tuple
+from typing import Any, Dict, List
+from urllib.request import urlopen
 
 import numpy as np
 import pandas as pd
 import requests
 import yaml
 from requests.adapters import HTTPAdapter
-from urllib.request import urlopen
 from urllib3.util.retry import Retry
 
 # Configure logging
@@ -60,18 +57,14 @@ def fetch_bigcodebench_leaderboard_easy() -> pd.DataFrame:
                 if metrics.get("complete") is not None:
                     new_rows.append({"model_name": f"{col}_complete", "score": metrics["complete"]})
             else:
-                logger.warning(
-                    "Unexpected format for metrics in column '%s', metrics: %s", col, metrics
-                )
+                logger.warning("Unexpected format for metrics in column '%s', metrics: %s", col, metrics)
         except (SyntaxError, NameError, TypeError) as e:
             logger.warning("Error processing data in column '%s': %s", col, e)
         except KeyError as e:
             logger.warning("Key %s not found for column '%s'", e, col)
 
     new_df = pd.DataFrame(new_rows)
-    new_df["score"] = (new_df["score"] - new_df["score"].min()) / (
-        new_df["score"].max() - new_df["score"].min()
-    )
+    new_df["score"] = (new_df["score"] - new_df["score"].min()) / (new_df["score"].max() - new_df["score"].min())
     return new_df
 
 
@@ -93,18 +86,14 @@ def fetch_bigcodebench_leaderboard_hard() -> pd.DataFrame:
                 if metrics.get("complete") is not None:
                     new_rows.append({"model_name": f"{col}_complete", "score": metrics["complete"]})
             else:
-                logger.warning(
-                    "Unexpected format for metrics in column '%s', metrics: %s", col, metrics
-                )
+                logger.warning("Unexpected format for metrics in column '%s', metrics: %s", col, metrics)
         except (SyntaxError, NameError, TypeError) as e:
             logger.warning("Error processing data in column '%s': %s", col, e)
         except KeyError as e:
             logger.warning("Key %s not found for column '%s'", e, col)
 
     new_df = pd.DataFrame(new_rows)
-    new_df["score"] = (new_df["score"] - new_df["score"].min()) / (
-        new_df["score"].max() - new_df["score"].min()
-    )
+    new_df["score"] = (new_df["score"] - new_df["score"].min()) / (new_df["score"].max() - new_df["score"].min())
     return new_df
 
 
@@ -212,8 +201,9 @@ def fetch_aider_leaderboard2() -> pd.DataFrame:
     old_df = pd.read_csv(old_buffer, sep="|").rename(columns=lambda x: x.strip())
     new_df = pd.read_csv(new_buffer, sep="|").rename(columns=lambda x: x.strip())
 
-    def process_leaderboard(df: pd.DataFrame, model_col: str, edit_format_col: str,
-                            percent_col: str, format_col: str) -> List[Dict[str, Any]]:
+    def process_leaderboard(
+        df: pd.DataFrame, model_col: str, edit_format_col: str, percent_col: str, format_col: str
+    ) -> List[Dict[str, Any]]:
         rows = []
         for _, row in df.iterrows():
             try:
@@ -226,17 +216,23 @@ def fetch_aider_leaderboard2() -> pd.DataFrame:
                 continue
         return rows
 
-    old_rows = process_leaderboard(old_df, "Model", "Edit format", "Percent completed correctly", "Percent using correct edit format")
-    new_rows = process_leaderboard(new_df, "Model", "Edit format", "Percent correct", "Percent using correct edit format")
+    old_rows = process_leaderboard(
+        old_df, "Model", "Edit format", "Percent completed correctly", "Percent using correct edit format"
+    )
+    new_rows = process_leaderboard(
+        new_df, "Model", "Edit format", "Percent correct", "Percent using correct edit format"
+    )
 
     old_processed = pd.DataFrame(old_rows)
     new_processed = pd.DataFrame(new_rows)
 
     merged_df = pd.merge(old_processed, new_processed, on="model_name", how="outer", validate="many_to_many")
     merged_df["score"] = merged_df.apply(
-        lambda row: np.mean([row["score_x"], row["score_y"]])
-        if pd.notna(row["score_x"]) and pd.notna(row["score_y"])
-        else row["score_x"] if pd.notna(row["score_x"]) else row["score_y"],
+        lambda row: (
+            np.mean([row["score_x"], row["score_y"]])
+            if pd.notna(row["score_x"]) and pd.notna(row["score_y"])
+            else row["score_x"] if pd.notna(row["score_x"]) else row["score_y"]
+        ),
         axis=1,
     )
     merged_df.drop(["score_x", "score_y"], axis=1, inplace=True, errors="ignore")
