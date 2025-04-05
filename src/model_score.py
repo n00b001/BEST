@@ -4,139 +4,119 @@ import logging
 import re
 from collections import defaultdict
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Generator, Tuple, DefaultDict
+from typing import Any, Dict, List, Optional, Generator, Tuple
 
+import numpy as np
+import pandas as pd
 import requests
 import yaml
 from requests.adapters import HTTPAdapter
+from urllib.request import urlopen
 from urllib3.util.retry import Retry
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Global constants and session configuration
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 SESSION = requests.Session()
-
-# Configure retries for transient errors
 retry_strategy = Retry(
-    total=3, backoff_factor=1, status_forcelist=[500, 502, 503, 504], allowed_methods=["HEAD", "GET", "OPTIONS"]
+    total=3,
+    backoff_factor=1,
+    status_forcelist=[500, 502, 503, 504],
+    allowed_methods=["HEAD", "GET", "OPTIONS"],
 )
 adapter = HTTPAdapter(max_retries=retry_strategy)
 SESSION.mount("https://", adapter)
 SESSION.mount("http://", adapter)
 SESSION.headers.update(HEADERS)
 
+
+def normalize_column(source_df: pd.DataFrame, target_df: pd.DataFrame, column: str) -> None:
+    """
+    Normalizes the values of a column in source_df and assigns them to target_df.
+    """
+    target_df[column] = (source_df[column] - source_df[column].min()) / (
+        source_df[column].max() - source_df[column].min()
+    )
+
+
 @lru_cache(maxsize=1)
-def fetch_bigcodebench_leaderboard_easy():
-    # prompt: using df1 as a data source, please create a new df:
-    # it should have columns:
-    # model_name, pass@1
-    # Please use the column names from df1 as model names. Each column name in df1 is a the name of a model
-    # please then extract the row "pass@1" (which is a string, example: "{'instruct': 36.2, 'complete': 47.6}")
-    # into relevant rows.
-    # For example, the column: "Magicoder-S-DS-6.7B" from df1 would be extracted from df1.
-    # We would then append "_instruct" to the model name, and add it to the new dataframe:
-    # model_name = "Magicoder-S-DS-6.7B_instruct"
-    # pass@1 = 36.2
-    # etc
-
-    import pandas as pd
-
+def fetch_bigcodebench_leaderboard_easy() -> pd.DataFrame:
+    """
+    Fetches and processes the 'easy' BigCodeBench leaderboard data.
+    """
+    url = "https://bigcode-bench.github.io/results.json"
+    df1 = pd.read_json(url)
     new_rows = []
-    df1 = pd.read_json("https://bigcode-bench.github.io/results.json")
+
     for col in df1.columns:
         try:
             metrics = df1[col]["pass@1"]
             if isinstance(metrics, dict):
-                if "instruct" in metrics and metrics["instruct"] is not None:
+                if metrics.get("instruct") is not None:
                     new_rows.append({"model_name": f"{col}_instruct", "score": metrics["instruct"]})
-                if "complete" in metrics and metrics["complete"] is not None:
+                if metrics.get("complete") is not None:
                     new_rows.append({"model_name": f"{col}_complete", "score": metrics["complete"]})
             else:
-                print(f"Warning: Unexpected format for metrics in column '{col}', metrics: {metrics}")
+                logger.warning(
+                    "Unexpected format for metrics in column '%s', metrics: %s", col, metrics
+                )
         except (SyntaxError, NameError, TypeError) as e:
-            print(f"Warning: Error processing data in column '{col}', row: {df1[col]}")
-            print(f"Exception: {e}")
+            logger.warning("Error processing data in column '%s': %s", col, e)
         except KeyError as e:
-            print(f"Warning: Key {e} not found for metrics in column '{col}', row: {df1[col]}")
+            logger.warning("Key %s not found for column '%s'", e, col)
 
     new_df = pd.DataFrame(new_rows)
-    new_df["score"] = (new_df["score"] - new_df["score"].min()) / (new_df["score"].max() - new_df["score"].min())
+    new_df["score"] = (new_df["score"] - new_df["score"].min()) / (
+        new_df["score"].max() - new_df["score"].min()
+    )
     return new_df
 
 
-def normalise(field, df, new_df):
-    new_df[field] = (df[field] - df[field].min()) / (df[field].max() - df[field].min())
-
-
 @lru_cache(maxsize=1)
-def fetch_bigcodebench_leaderboard_hard():
-    # prompt: using df1 as a data source, please create a new df:
-    # it should have columns:
-    # model_name, pass@1
-    # Please use the column names from df1 as model names. Each column name in df1 is a the name of a model
-    # please then extract the row "pass@1" (which is a string, example: "{'instruct': 36.2, 'complete': 47.6}")
-    # into relevant rows.
-    # For example, the column: "Magicoder-S-DS-6.7B" from df1 would be extracted from df1.
-    # We would then append "_instruct" to the model name, and add it to the new dataframe:
-    # model_name = "Magicoder-S-DS-6.7B_instruct"
-    # pass@1 = 36.2
-    # etc
-
-    import pandas as pd
-
-    # Assuming df1 is already defined as in the provided code
-
+def fetch_bigcodebench_leaderboard_hard() -> pd.DataFrame:
+    """
+    Fetches and processes the 'hard' BigCodeBench leaderboard data.
+    """
+    url = "https://bigcode-bench.github.io/results-hard.json"
+    df1 = pd.read_json(url)
     new_rows = []
-    df1 = pd.read_json("https://bigcode-bench.github.io/results-hard.json")
+
     for col in df1.columns:
         try:
             metrics = df1[col]["pass@1"]
             if isinstance(metrics, dict):
-                if "instruct" in metrics and metrics["instruct"] is not None:
+                if metrics.get("instruct") is not None:
                     new_rows.append({"model_name": f"{col}_instruct", "score": metrics["instruct"]})
-                if "complete" in metrics and metrics["complete"] is not None:
+                if metrics.get("complete") is not None:
                     new_rows.append({"model_name": f"{col}_complete", "score": metrics["complete"]})
             else:
-                print(f"Warning: Unexpected format for metrics in column '{col}', metrics: {metrics}")
+                logger.warning(
+                    "Unexpected format for metrics in column '%s', metrics: %s", col, metrics
+                )
         except (SyntaxError, NameError, TypeError) as e:
-            print(f"Warning: Error processing data in column '{col}', row: {df1[col]}")
-            print(f"Exception: {e}")
+            logger.warning("Error processing data in column '%s': %s", col, e)
         except KeyError as e:
-            print(f"Warning: Key {e} not found for metrics in column '{col}', row: {df1[col]}")
+            logger.warning("Key %s not found for column '%s'", e, col)
 
     new_df = pd.DataFrame(new_rows)
-    new_df["score"] = (new_df["score"] - new_df["score"].min()) / (new_df["score"].max() - new_df["score"].min())
+    new_df["score"] = (new_df["score"] - new_df["score"].min()) / (
+        new_df["score"].max() - new_df["score"].min()
+    )
     return new_df
 
 
 @lru_cache(maxsize=1)
-def fetch_evalplus_leaderboard2():
-    # prompt: Starting with 'df = pd.read_json("https://evalplus.github.io/results.json")'
-    # Please create a new df with columns: model_name, score
-    # here is the datamodel of the json file: "
-    # {
-    #       "OpenCoder-8B-Instruct": {
-    #             "link": "https://huggingface.co/infly/OpenCoder-8B-Instruct",
-    #             "open-data": "NONE",
-    #             "pass@1": {
-    #                   "humaneval": 81.7,
-    #                   "humaneval+": 77.4,
-    #                   "mbpp": 82,
-    #                   "mbpp+": 71.4
-    #             },
-    #             "prompted": true,
-    #             "size": 8
-    #       },
-    # "
-    # Please mean average all the scores under pass@1 and assign the result to 'score' in the new DF
-    # the model name can be found as "OpenCoder-8B-Instruct" in the exacmple (it will be the column in the df)
-    import pandas as pd
-
-    df = pd.read_json("https://evalplus.github.io/results.json")
-
+def fetch_evalplus_leaderboard2() -> pd.DataFrame:
+    """
+    Fetches EvalPlus leaderboard data and computes the mean of various scores.
+    """
+    url = "https://evalplus.github.io/results.json"
+    df = pd.read_json(url)
     new_rows = []
+
     for model_name, model_data in df.items():
         try:
             pass_at_1 = model_data["pass@1"]
@@ -151,108 +131,45 @@ def fetch_evalplus_leaderboard2():
                     }
                 )
         except KeyError:
-            print(f"Skipping model {model_name}: 'pass@1' key not found or invalid data format.")
+            logger.warning("Skipping model %s: 'pass@1' key not found", model_name)
 
     new_df = pd.DataFrame(new_rows)
-    normalise("humaneval_score", new_df, new_df)
-    normalise("humaneval+_score", new_df, new_df)
-    normalise("mbpp_score", new_df, new_df)
-    normalise("mbpp+_score", new_df, new_df)
+    for col in ["humaneval_score", "humaneval+_score", "mbpp_score", "mbpp+_score"]:
+        normalize_column(new_df, new_df, col)
     new_df["score"] = new_df[["humaneval_score", "humaneval+_score", "mbpp_score", "mbpp+_score"]].mean(axis=1)
     return new_df
 
 
 @lru_cache(maxsize=1)
-def fetch_crux_leaderboard2():
-    # prompt: Now we will do the same, this time using: "https://crux-eval.github.io/data.csv"
-    # Please read this data, and create a new dataframe with columns: "model_name", "score"
-    # Here is the data model for the CSV:
-    # "
-    # Model,i@1,i@5,o@1,o@5,link
-    # phi-1,13.1,21.1,21.7,32.0,https://huggingface.co/microsoft/phi-1
-    # phi-1.5,23.2,37.7,27.5,39.1,https://huggingface.co/microsoft/phi-1_5
-    # "
-
-    import numpy as np
-    import pandas as pd
-
-    df_crux = pd.read_csv("https://crux-eval.github.io/data.csv")
+def fetch_crux_leaderboard2() -> pd.DataFrame:
+    """
+    Fetches Crux leaderboard data from CSV and processes it.
+    """
+    url = "https://crux-eval.github.io/data.csv"
+    df_crux = pd.read_csv(url)
     df_crux = df_crux.replace("-", np.nan)
-
-    # # Create a new DataFrame with the specified columns
-    new_df = pd.DataFrame()
-    new_df["model_name"] = df_crux["Model"]
     df_crux[["i@1", "i@5", "o@1", "o@5"]] = df_crux[["i@1", "i@5", "o@1", "o@5"]].astype(float)
 
-    normalise("i@1", df_crux, new_df)
-    normalise("i@5", df_crux, new_df)
-    normalise("o@1", df_crux, new_df)
-    normalise("o@5", df_crux, new_df)
-
+    new_df = pd.DataFrame()
+    new_df["model_name"] = df_crux["Model"]
+    for col in ["i@1", "i@5", "o@1", "o@5"]:
+        normalize_column(df_crux, new_df, col)
     new_df["score"] = new_df[["i@1", "i@5", "o@1", "o@5"]].mean(axis=1)
     return new_df
 
 
 @lru_cache(maxsize=1)
-def fetch_tabby_leaderboard2():
-    # prompt: Please do the same for the datasource: "https://leaderboard.tabbyml.com/tabby.yml"
-    # It is of datatype: "yaml"
-    # here is an example of the data:
-    # "
-    # DeepSeekCoder-V2-Lite:
-    #   Baseline:
-    #     Java: 36.65
-    #     C#: 49.89
-    #     Typescript: 30.84
-    #     Python: 34.11
-    #   BM25:
-    #     Java: 44.18
-    #     C#: 53.17
-    #     Typescript: 32.21
-    #     Python: 38.95
-    #   Oracle:
-    #     Java: 49.32
-    #     C#: 58.31
-    #     Typescript: 36.08
-    #     Python: 44.02
-    # DeepSeekCoder-6.7B:
-    #   Baseline:
-    #     Java: 37.87
-    #     C#: 50.34
-    #     Typescript: 32.48
-    #     Python: 34.41
-    #   BM25:
-    #     Java: 44.23
-    #     C#: 52.6
-    #     Typescript: 34.03
-    #     Python: 38.57
-    #   Oracle:
-    #     Java: 49.23
-    #     C#: 58.2
-    #     Typescript: 37.93
-    #     Python: 44.39
-    # "
-    # I want you to create a dataframe with columns: "model_name" and "score"
-    # I want you to add other columns for each score.  for example:
-    # model_name = DeepSeekCoder-V2-Lite_baseline
-    # java_score = 36.65
-    # c#_score = 49.89
-    # typescript_score = 30.84
-    # python_score = 34.11
-    # please then normalise the scores (so the scores are between 0 and 1 for each column)
-    # and then create a new column: "score" which is the mean of all other scores
-    # then order the rows by "score" highest to lowest
-
-    import pandas as pd
-    import yaml
-    from urllib.request import urlopen
-
+def fetch_tabby_leaderboard2() -> pd.DataFrame:
+    """
+    Fetches Tabby leaderboard data from YAML, normalizes the scores, and calculates the mean score.
+    """
+    url = "https://leaderboard.tabbyml.com/tabby.yml"
     try:
-        with urlopen("https://leaderboard.tabbyml.com/tabby.yml") as file:
+        with urlopen(url) as file:
             data = yaml.safe_load(file)
     except Exception as e:
-        print(f"An error occurred: {e}")
-        data = {}  # Assign an empty dictionary in case of error
+        logger.error("An error occurred while fetching Tabby data: %s", e)
+        data = {}
 
     rows = []
     for model_name, model_data in data.items():
@@ -263,25 +180,22 @@ def fetch_tabby_leaderboard2():
             rows.append(row)
 
     df = pd.DataFrame(rows)
-
-    # Normalize scores
     score_columns = [col for col in df.columns if col.endswith("_score")]
     for col in score_columns:
         df[col] = (df[col] - df[col].min()) / (df[col].max() - df[col].min())
-
-    # Calculate the mean score
     df["score"] = df[score_columns].mean(axis=1)
-
+    df.sort_values(by="score", ascending=False, inplace=True)
+    df.reset_index(drop=True, inplace=True)
     return df
 
 
 @lru_cache(maxsize=1)
-def fetch_aider_leaderboard2():
-    import pandas as pd
-    import io
-    import numpy as np
-
-    df = pd.read_json("https://aider.chat/assets/js/search-data.json").T
+def fetch_aider_leaderboard2() -> pd.DataFrame:
+    """
+    Fetches Aider leaderboard data, processes both old and new formats, and merges them.
+    """
+    url = "https://aider.chat/assets/js/search-data.json"
+    df = pd.read_json(url).T
 
     old_leaderboard = df[df["title"] == "Code editing leaderboard"]["content"]
     new_leaderboard = df[df["title"] == "Polyglot leaderboard"]["content"]
@@ -289,96 +203,82 @@ def fetch_aider_leaderboard2():
     new_leaderboard = new_leaderboard.to_list()[0]
     old_leaderboard = old_leaderboard.to_list()[0]
 
-    new_leaderboard = new_leaderboard.split("intervention. ")[-1].split(" . ")
-    old_leaderboard = old_leaderboard.split("intervention. ")[-1].split(" . ")
-
-    new_leaderboard = "\n".join(new_leaderboard)
-    old_leaderboard = "\n".join(old_leaderboard)
+    new_leaderboard = "\n".join(new_leaderboard.split("intervention. ")[-1].split(" . "))
+    old_leaderboard = "\n".join(old_leaderboard.split("intervention. ")[-1].split(" . "))
 
     old_buffer = io.StringIO(old_leaderboard)
     new_buffer = io.StringIO(new_leaderboard)
 
-    old_leaderboard = pd.read_csv(old_buffer, sep="|")
-    old_leaderboard = old_leaderboard.rename(columns=lambda x: x.strip())
-    new_leaderboard = pd.read_csv(new_buffer, sep="|")
-    new_leaderboard = new_leaderboard.rename(columns=lambda x: x.strip())
+    old_df = pd.read_csv(old_buffer, sep="|").rename(columns=lambda x: x.strip())
+    new_df = pd.read_csv(new_buffer, sep="|").rename(columns=lambda x: x.strip())
 
-    old_rows = []
-    for index, row in old_leaderboard.iterrows():
-        try:
-            model_name = f"{row['Model'].strip()}_{row['Edit format'].strip()}"
-            percent_completed = float(row["Percent completed correctly"].replace("%", ""))
-            percent_format = float(row["Percent using correct edit format"].replace("%", ""))
-            score = (percent_completed + percent_format) / 200
-            old_rows.append({"model_name": model_name, "score": score})
-        except (ValueError, AttributeError, KeyError):
-            pass
+    def process_leaderboard(df: pd.DataFrame, model_col: str, edit_format_col: str,
+                            percent_col: str, format_col: str) -> List[Dict[str, Any]]:
+        rows = []
+        for _, row in df.iterrows():
+            try:
+                model_name = f"{row[model_col].strip()}_{row[edit_format_col].strip()}"
+                percent_completed = float(row[percent_col].replace("%", ""))
+                percent_format = float(row[format_col].replace("%", ""))
+                score = (percent_completed + percent_format) / 200
+                rows.append({"model_name": model_name, "score": score})
+            except (ValueError, AttributeError, KeyError):
+                continue
+        return rows
 
-    old_df = pd.DataFrame(old_rows)
+    old_rows = process_leaderboard(old_df, "Model", "Edit format", "Percent completed correctly", "Percent using correct edit format")
+    new_rows = process_leaderboard(new_df, "Model", "Edit format", "Percent correct", "Percent using correct edit format")
 
-    new_rows = []
-    for index, row in new_leaderboard.iterrows():
-        try:
-            model_name = f"{row['Model'].strip()}_{row['Edit format'].strip()}"
-            percent_completed = float(row["Percent correct"].replace("%", ""))
-            percent_format = float(row["Percent using correct edit format"].replace("%", ""))
-            score = (percent_completed + percent_format) / 200
-            new_rows.append({"model_name": model_name, "score": score})
-        except (ValueError, AttributeError, KeyError):
-            pass
+    old_processed = pd.DataFrame(old_rows)
+    new_processed = pd.DataFrame(new_rows)
 
-    new_df = pd.DataFrame(new_rows)
-
-    merged_df = pd.merge(old_df, new_df, on="model_name", how="outer", validate="many_to_many")
-
-    # Calculate the mean of 'score' where both dataframes have values
+    merged_df = pd.merge(old_processed, new_processed, on="model_name", how="outer", validate="many_to_many")
     merged_df["score"] = merged_df.apply(
-        lambda row: (
-            np.mean([row["score_x"], row["score_y"]])
-            if pd.notna(row["score_x"]) and pd.notna(row["score_y"])
-            else row["score_x"] if pd.notna(row["score_x"]) else row["score_y"]
-        ),
+        lambda row: np.mean([row["score_x"], row["score_y"]])
+        if pd.notna(row["score_x"]) and pd.notna(row["score_y"])
+        else row["score_x"] if pd.notna(row["score_x"]) else row["score_y"],
         axis=1,
     )
-
-    # Drop the intermediate score columns
-    merged_df = merged_df.drop(["score_x", "score_y"], axis=1, errors="ignore")
+    merged_df.drop(["score_x", "score_y"], axis=1, inplace=True, errors="ignore")
     return merged_df
 
 
-def merge_dataframes(dfs):
-    import pandas as pd
-
+def merge_dataframes(dfs: List[pd.DataFrame]) -> pd.DataFrame:
+    """
+    Merges multiple dataframes of leaderboard scores into one, averaging scores for duplicate model names.
+    """
     merged_df = pd.DataFrame(columns=["model_name", "score"])
     for df in dfs:
-        for index, row in df.iterrows():
+        for _, row in df.iterrows():
             model_name = row["model_name"]
             row_score = row["score"]
             if model_name in merged_df["model_name"].values:
-                merged_df.loc[merged_df["model_name"] == model_name, "score"] = (
-                    merged_df.loc[merged_df["model_name"] == model_name, "score"].astype(float) + row_score
-                ) / 2
+                existing_score = merged_df.loc[merged_df["model_name"] == model_name, "score"].astype(float)
+                merged_df.loc[merged_df["model_name"] == model_name, "score"] = (existing_score + row_score) / 2
             else:
                 merged_df = pd.concat(
-                    [merged_df, pd.DataFrame({"model_name": [model_name], "score": [row_score]})], ignore_index=True
+                    [merged_df, pd.DataFrame({"model_name": [model_name], "score": [row_score]})],
+                    ignore_index=True,
                 )
     return merged_df
 
 
 def get_leaderboard_score(model_name: str) -> float:
-    """Aggregates scores across all tests and leaderboards using normalized averaging."""
-
+    """
+    Aggregates scores across all tests and leaderboards using normalized averaging.
+    """
     merged_df = get_merged_leaderboard_df()
-
     scores = merged_df[merged_df["model_name"].str.contains(model_name)]
-    if len(scores.index) == 0:
-        return 0
-    mean_score = float(scores["score"].mean())
-    return mean_score
+    if scores.empty:
+        return 0.0
+    return float(scores["score"].mean())
 
 
 @lru_cache(maxsize=1)
-def get_merged_leaderboard_df():
+def get_merged_leaderboard_df() -> pd.DataFrame:
+    """
+    Merges all leaderboard data sources into a single sorted dataframe.
+    """
     sources = [
         fetch_bigcodebench_leaderboard_easy(),
         fetch_bigcodebench_leaderboard_hard(),
@@ -388,7 +288,7 @@ def get_merged_leaderboard_df():
         fetch_aider_leaderboard2(),
     ]
     merged_df = merge_dataframes(sources)
-    merged_df = merged_df.sort_values(by="score", ascending=False)
+    merged_df.sort_values(by="score", ascending=False, inplace=True)
     merged_df.reset_index(drop=True, inplace=True)
     return merged_df
 
@@ -408,15 +308,18 @@ if __name__ == "__main__":
         "GPT-4o",
         "GPT-3.5",
     ]
+
     model_scores = []
     for model in models:
         score = get_leaderboard_score(model)
-        if score is not None:
+        if score:
             model_scores.append((model, score))
         else:
-            print(f"No data found for {model}")
+            logger.info("No data found for %s", model)
+
     # Sort models by score in descending order
     model_scores.sort(key=lambda x: x[1], reverse=True)
+
     # Print ranked results
     print("Rankings:")
     for rank, (model, score) in enumerate(model_scores, 1):
