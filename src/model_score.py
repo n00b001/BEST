@@ -583,26 +583,6 @@ def get_leaderboard_score(model_name: str) -> float:
         return 0
     mean_score = float(scores["score"].mean())
     return mean_score
-    # for source in sources:
-    #     leaderboard_scores = []
-    #     # Find all matching models in this leaderboard
-    #     for leaderboard_model in source:
-    #         if normalized in leaderboard_model:
-    #             # Collect all scores from all tests for this model entry
-    #             for test_scores in source[leaderboard_model].values():
-    #                 leaderboard_scores.extend(test_scores)
-    #
-    #     if leaderboard_scores:
-    #         # Calculate average for this leaderboard
-    #         leaderboard_avg = sum(leaderboard_scores) / len(leaderboard_scores)
-    #         leaderboard_averages.append(leaderboard_avg)
-    #
-    # if not leaderboard_averages:
-    #     return 0
-    #
-    # # Calculate final score as average of leaderboard averages
-    # final_score = sum(leaderboard_averages) / len(leaderboard_averages)
-    # return final_score
 
 
 @lru_cache(maxsize=1)
