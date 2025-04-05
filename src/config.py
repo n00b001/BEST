@@ -23,7 +23,8 @@ from src.consts import (
     MODEL_CTX_SCORE_SCALAR,
     MODEL_ADJUSTMENTS_FILENAME,
     MODEL_LEADERBOARD_SCORE_SCALAR,
-    MODEL_ADJUSTMENT_SCALAR, DEBUG_MODE,
+    MODEL_ADJUSTMENT_SCALAR,
+    DEBUG_MODE,
 )
 from src.model_score import get_leaderboard_score
 from src.utils import truncate_dict

@@ -241,8 +241,10 @@ def fetch_bigcodebench_leaderboard_easy():
     # it should have columns:
     # model_name, pass@1
     # Please use the column names from df1 as model names. Each column name in df1 is a the name of a model
-    # please then extract the row "pass@1" (which is a string, example: "{'instruct': 36.2, 'complete': 47.6}") into relevant rows. 
-    # For example, the column: "Magicoder-S-DS-6.7B" from df1 would be extracted from df1.  We would then append "_instruct" to the model name, and add it to the new dataframe:
+    # please then extract the row "pass@1" (which is a string, example: "{'instruct': 36.2, 'complete': 47.6}")
+    # into relevant rows.
+    # For example, the column: "Magicoder-S-DS-6.7B" from df1 would be extracted from df1.
+    # We would then append "_instruct" to the model name, and add it to the new dataframe:
     # model_name = "Magicoder-S-DS-6.7B_instruct"
     # pass@1 = 36.2
     # etc
@@ -255,10 +257,10 @@ def fetch_bigcodebench_leaderboard_easy():
         try:
             metrics = df1[col]["pass@1"]
             if isinstance(metrics, dict):
-                if 'instruct' in metrics and metrics["instruct"] is not None:
-                    new_rows.append({'model_name': f'{col}_instruct', 'score': metrics['instruct']})
-                if 'complete' in metrics and metrics["complete"] is not None:
-                    new_rows.append({'model_name': f'{col}_complete', 'score': metrics['complete']})
+                if "instruct" in metrics and metrics["instruct"] is not None:
+                    new_rows.append({"model_name": f"{col}_instruct", "score": metrics["instruct"]})
+                if "complete" in metrics and metrics["complete"] is not None:
+                    new_rows.append({"model_name": f"{col}_complete", "score": metrics["complete"]})
             else:
                 print(f"Warning: Unexpected format for metrics in column '{col}', metrics: {metrics}")
         except (SyntaxError, NameError, TypeError) as e:
@@ -282,8 +284,10 @@ def fetch_bigcodebench_leaderboard_hard():
     # it should have columns:
     # model_name, pass@1
     # Please use the column names from df1 as model names. Each column name in df1 is a the name of a model
-    # please then extract the row "pass@1" (which is a string, example: "{'instruct': 36.2, 'complete': 47.6}") into relevant rows.
-    # For example, the column: "Magicoder-S-DS-6.7B" from df1 would be extracted from df1.  We would then append "_instruct" to the model name, and add it to the new dataframe:
+    # please then extract the row "pass@1" (which is a string, example: "{'instruct': 36.2, 'complete': 47.6}")
+    # into relevant rows.
+    # For example, the column: "Magicoder-S-DS-6.7B" from df1 would be extracted from df1.
+    # We would then append "_instruct" to the model name, and add it to the new dataframe:
     # model_name = "Magicoder-S-DS-6.7B_instruct"
     # pass@1 = 36.2
     # etc
@@ -298,10 +302,10 @@ def fetch_bigcodebench_leaderboard_hard():
         try:
             metrics = df1[col]["pass@1"]
             if isinstance(metrics, dict):
-                if 'instruct' in metrics and metrics["instruct"] is not None:
-                    new_rows.append({'model_name': f'{col}_instruct', 'score': metrics['instruct']})
-                if 'complete' in metrics and metrics["complete"] is not None:
-                    new_rows.append({'model_name': f'{col}_complete', 'score': metrics['complete']})
+                if "instruct" in metrics and metrics["instruct"] is not None:
+                    new_rows.append({"model_name": f"{col}_instruct", "score": metrics["instruct"]})
+                if "complete" in metrics and metrics["complete"] is not None:
+                    new_rows.append({"model_name": f"{col}_complete", "score": metrics["complete"]})
             else:
                 print(f"Warning: Unexpected format for metrics in column '{col}', metrics: {metrics}")
         except (SyntaxError, NameError, TypeError) as e:
@@ -345,13 +349,15 @@ def fetch_evalplus_leaderboard2():
         try:
             pass_at_1 = model_data["pass@1"]
             if isinstance(pass_at_1, dict):
-                new_rows.append({
-                    "model_name": model_name,
-                    "humaneval_score": pass_at_1["humaneval"],
-                    "humaneval+_score": pass_at_1["humaneval+"],
-                    "mbpp_score": pass_at_1["mbpp"],
-                    "mbpp+_score": pass_at_1["mbpp+"],
-                })
+                new_rows.append(
+                    {
+                        "model_name": model_name,
+                        "humaneval_score": pass_at_1["humaneval"],
+                        "humaneval+_score": pass_at_1["humaneval+"],
+                        "mbpp_score": pass_at_1["mbpp"],
+                        "mbpp+_score": pass_at_1["mbpp+"],
+                    }
+                )
         except KeyError:
             print(f"Skipping model {model_name}: 'pass@1' key not found or invalid data format.")
 
@@ -384,7 +390,6 @@ def fetch_crux_leaderboard2():
     # # Create a new DataFrame with the specified columns
     new_df = pd.DataFrame()
     new_df["model_name"] = df_crux["Model"]
-    # new_df["score"] = df_crux[["i@1","i@5","o@1","o@5"]].mean(axis=0)
     df_crux[["i@1", "i@5", "o@1", "o@5"]] = df_crux[["i@1", "i@5", "o@1", "o@5"]].astype(float)
 
     normalise("i@1", df_crux, new_df)
@@ -394,8 +399,6 @@ def fetch_crux_leaderboard2():
 
     new_df["score"] = new_df[["i@1", "i@5", "o@1", "o@5"]].mean(axis=1)
     return new_df
-    # new_df = new_df.sort_values(by="score", ascending=False)
-    # new_df
 
 
 @lru_cache(maxsize=1)
@@ -512,14 +515,12 @@ def fetch_aider_leaderboard2():
     for index, row in old_leaderboard.iterrows():
         try:
             model_name = f"{row['Model'].strip()}_{row['Edit format'].strip()}"
-            percent_completed = float(row['Percent completed correctly'].replace('%', ''))
-            percent_format = float(row['Percent using correct edit format'].replace('%', ''))
+            percent_completed = float(row["Percent completed correctly"].replace("%", ""))
+            percent_format = float(row["Percent using correct edit format"].replace("%", ""))
             score = (percent_completed + percent_format) / 200
             old_rows.append({"model_name": model_name, "score": score})
-        except (ValueError, AttributeError, KeyError) as e:
+        except (ValueError, AttributeError, KeyError):
             pass
-            # print(f"Error processing row {index}: {e}")
-            # print(row)
 
     old_df = pd.DataFrame(old_rows)
 
@@ -527,42 +528,35 @@ def fetch_aider_leaderboard2():
     for index, row in new_leaderboard.iterrows():
         try:
             model_name = f"{row['Model'].strip()}_{row['Edit format'].strip()}"
-            percent_completed = float(row['Percent correct'].replace('%', ''))
-            percent_format = float(row['Percent using correct edit format'].replace('%', ''))
+            percent_completed = float(row["Percent correct"].replace("%", ""))
+            percent_format = float(row["Percent using correct edit format"].replace("%", ""))
             score = (percent_completed + percent_format) / 200
             new_rows.append({"model_name": model_name, "score": score})
-        except (ValueError, AttributeError, KeyError) as e:
+        except (ValueError, AttributeError, KeyError):
             pass
-            # print(f"Error processing row {index}: {e}")
-            # print(row)
 
     new_df = pd.DataFrame(new_rows)
 
-    merged_df = pd.merge(
-        old_df, new_df, on="model_name", how="outer",
-        validate="many_to_many"
-    )
+    merged_df = pd.merge(old_df, new_df, on="model_name", how="outer", validate="many_to_many")
 
     # Calculate the mean of 'score' where both dataframes have values
-    merged_df['score'] = merged_df.apply(
-        lambda row: np.mean(
-            [row['score_x'], row['score_y']]
-        ) if pd.notna(row['score_x']) and pd.notna(
-            row['score_y']
-        )
-        else row['score_x']
-        if pd.notna(row['score_x'])
-        else row['score_y'],
-        axis=1
+    merged_df["score"] = merged_df.apply(
+        lambda row: (
+            np.mean([row["score_x"], row["score_y"]])
+            if pd.notna(row["score_x"]) and pd.notna(row["score_y"])
+            else row["score_x"] if pd.notna(row["score_x"]) else row["score_y"]
+        ),
+        axis=1,
     )
 
     # Drop the intermediate score columns
-    merged_df = merged_df.drop(['score_x', 'score_y'], axis=1, errors='ignore')
+    merged_df = merged_df.drop(["score_x", "score_y"], axis=1, errors="ignore")
     return merged_df
 
 
 def merge_dataframes(dfs):
     import pandas as pd
+
     merged_df = pd.DataFrame(columns=["model_name", "score"])
     for df in dfs:
         for index, row in df.iterrows():
@@ -570,14 +564,11 @@ def merge_dataframes(dfs):
             row_score = row["score"]
             if model_name in merged_df["model_name"].values:
                 merged_df.loc[merged_df["model_name"] == model_name, "score"] = (
-                                                                                        merged_df.loc[merged_df[
-                                                                                                          "model_name"] == model_name, "score"].astype(
-                                                                                            float) + row_score
-                                                                                ) / 2
+                    merged_df.loc[merged_df["model_name"] == model_name, "score"].astype(float) + row_score
+                ) / 2
             else:
                 merged_df = pd.concat(
-                    [merged_df, pd.DataFrame({"model_name": [model_name], "score": [row_score]})],
-                    ignore_index=True
+                    [merged_df, pd.DataFrame({"model_name": [model_name], "score": [row_score]})], ignore_index=True
                 )
     return merged_df
 
