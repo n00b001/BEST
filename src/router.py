@@ -14,7 +14,7 @@ from .consts import (
     LOG_LEVEL,
     DEFAULT_COOLDOWN_SECONDS,
     BAD_REQUEST_COOLDOWN_SECONDS,
-    NON_PROJECT_HEALTHCHECK_URL,
+    NON_PROJECT_HEALTHCHECK_URL, MAX_RETRIES,
 )
 
 
@@ -235,18 +235,24 @@ class Router:
     async def route_request(self, request: dict):
         model_param = request.get("model", "priority-auto")
 
-        if model_param == "priority-auto":
-            providers_to_try = sorted(self._get_available_providers(), key=lambda p: p.priority["overall_score"])
-        else:
-            model_names = [name.strip() for name in model_param.split(",")]
-            providers_to_try = []
-            for model_name in model_names:
-                model_providers = [p for p in self._get_available_providers() if model_name in p.model_name]
-                sorted_providers = sorted(model_providers, key=lambda p: p.priority["overall_score"])
-                providers_to_try.extend(sorted_providers)
+        tries =0
+        while True:
+            if model_param == "priority-auto":
+                providers_to_try = sorted(self._get_available_providers(), key=lambda p: p.priority["overall_score"])
+            else:
+                model_names = [name.strip() for name in model_param.split(",")]
+                providers_to_try = []
+                for model_name in model_names:
+                    model_providers = [p for p in self._get_available_providers() if model_name in p.model_name]
+                    sorted_providers = sorted(model_providers, key=lambda p: p.priority["overall_score"])
+                    providers_to_try.extend(sorted_providers)
 
-        if not providers_to_try:
-            raise HTTPException(status_code=429, detail="All providers are rate limited")
+            if not providers_to_try:
+                tries += 1
+                if tries > MAX_RETRIES:
+                    raise HTTPException(status_code=429, detail="All providers are rate limited")
+            else:
+                break
 
         for provider in providers_to_try:
             start_time = datetime.now()
