@@ -23,7 +23,7 @@ from src.consts import (
     MODEL_CTX_SCORE_SCALAR,
     MODEL_ADJUSTMENTS_FILENAME,
     MODEL_LEADERBOARD_SCORE_SCALAR,
-    MODEL_ADJUSTMENT_SCALAR,
+    MODEL_ADJUSTMENT_SCALAR, DEBUG_MODE,
 )
 from src.model_score import get_leaderboard_score
 from src.utils import truncate_dict
@@ -45,8 +45,10 @@ class ProviderConfig(BaseModel):
 
     def __hash__(self):
         return hash(f"{self.api_key}{self.base_url}{self.model_name}{str(property)}")
+
     def __repr__(self):
         return str(self)
+
     def __str__(self):
         return f"{self.model_name}"
 
@@ -160,12 +162,14 @@ def _calculate_model_priority(
 
         for pattern_str in regex_patterns:
             try:
+                if pattern_str is None:
+                    continue
                 pattern = re.compile(pattern_str, re.IGNORECASE)
                 if pattern.search(model_name):
                     logger.info(f"{pattern_str} matched: {model_name}, adding: {group_priority}")
                     model_adjustment_score += group_priority
                     break  # Only apply once per model group if any pattern matches
-            except re.error as e:
+            except (re.error, TypeError) as e:
                 logger.error(f"Invalid regex pattern '{pattern_str}': {e}")
                 continue
 
@@ -212,6 +216,7 @@ def load_config() -> List[ProviderConfig]:
     if (
         not os.path.exists(providers_config_filename)
         or os.path.getmtime(providers_config_filename) < time.time() - GENERATED_PROVIDER_CONFIG_STALE_TIME_SECS
+        or DEBUG_MODE
     ):
         generate_providers(providers_config_filename, meta_providers_config_filename, model_adjustments_filename)
 
