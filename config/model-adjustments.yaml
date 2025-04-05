@@ -1,29 +1,204 @@
 # model-adjustments.yaml
 adjustments:
+  "claude 3.7 sonnet":
+    priority: 35.8
+    regex:
+      - ".*claude-3.7-sonnet.*"
+  "anthropic":
+    priority: 35.8
+    regex:
+      - ".*anthropic.*"
+  "O1":
+    priority: 35.5
+    regex:
+      - ".*openai/o1^"
+      - ".*/o1^"
+      - ".*-o1^"
+  "o3":
+    priority: 35.5
+    regex:
+      - ".*openai/o3-mini.*"
   "Deepseek R1":
-    priority: 95
+    priority: 35.1
     regex:
       - ".*deepseek[-_ ]{0,1}r1.*"
+  "deepseek-ai/DeepSeek-V3":
+    priority: 33.8
+    regex:
+      - ".*deepseek-ai/DeepSeek-V3.*"
+      - ".*deepseek-ai/DeepSeek-V3-p-dp.*"
+      - ".*deepseek-ai/DeepSeek-V3-0324.*"
+      - ".*deepseek-ai/DeepSeek-V3.*"
+      - ".*deepseek/deepseek-v3.*"
+      - ".*deepseek/deepseek-chat-v3.*"
+      - ".*deepseek-ai/deepseek-chat-v3.*"
+  "google/gemini-2.5-pro-exp-03-25":
+    priority: 33.1
+    regex:
+      - ".*google/gemini-2.5-pro-exp-03-25.*"
+      - ".*models/gemini-2.5-pro-exp-03-25.*"
+  "openai/gpt-4-turbo-preview":
+    priority: 32.1
+    regex:
+      - ".*openai/gpt-4-turbo-preview.*"
+      - ".*openai/gpt-4-turbo.*"
+  "Qwen/Qwen2.5-Coder-32B-Instruct":
+    priority: 30.8
+    regex:
+      - ".*Qwen/Qwen2.5-Coder-32B-Instruct.*"
+  "Claude-3.5-Haiku-20241022":
+    priority: 30.1
+    regex:
+      - ".*Claude-3.5-Haiku-20241022.*"
+  "Gemini-1.5-Pro-Exp-0827":
+    priority: 29.4
+    regex:
+      - ".*Gemini-1.5-Pro-Exp-0827.*"
+  "gemini-exp-1206":
+    priority: 14.1
+    regex:
+      - ".*gemini-exp-1206.*"
+  "Gemini-Exp-1114":
+    priority: 9.4
+    regex:
+      - ".*Gemini-Exp-1114.*"
+  "Gemini-Exp-1121":
+    priority: 7.4
+    regex:
+      - ".*Gemini-Exp-1121.*"
+  "general-gemini-exp":
+    priority: 20
+    regex:
+      - ".*Gemini-exp.*"
+  "ChatGPT-4o":
+    priority: 29.4
+    regex:
+      - ".*ChatGPT-4o.*"
+  "GPT-4o-mini":
+    priority: 25.3
+    regex:
+      - ".*GPT-4o-mini.*"
+  "QwQ-32B":
+    priority: 29
+    regex:
+      - ".*QwQ-32B.*"
+  "o1-Preview-2024-09-12":
+    priority: 28.8
+    regex:
+      - ".*o1-Preview-2024-09-12.*"
+  "DeepSeek-V2-Chat":
+    priority: 28.7
+    regex:
+      - ".*DeepSeek-V2-Chat.*"
+  "Llama-3.3-70B-Instruct":
+    priority: 28.4
+    regex:
+      - ".*Llama-3.3-70B-Instruct.*"
+  "Gemini-1.5-Pro-Exp-0801":
+    priority: 27.4
+    regex:
+      - ".*Gemini-1.5-Pro-Exp.*"
+  "Phi-4":
+    priority: 27.4
+    regex:
+      - ".*Phi-4.*"
+  "Mistral":
+    priority: 26
+    regex:
+      - ".*Mistral.*"
+  "Codestral-22B-v0.1":
+    priority: 20.6
+    regex:
+      - ".*Codestral.*"
+  "Gemini-2.0-Flash":
+    priority: 28.7
+    regex:
+      - ".*Gemini-2.0-Flash.*"
+  "Gemini-2.0-Pro-Exp":
+    priority: 31.8
+    regex:
+      - ".*Gemini-2.0-Pro-Exp.*"
+  "Gemini-1.5-Pro":
+    priority: 26.6
+    regex:
+      - ".*Gemini-1.5-Pro.*"
+  "Gemini-1.5-Flash":
+    priority: 23.6
+    regex:
+      - ".*Gemini-1.5-Flash.*"
+  "llama-3.1":
+    priority: 10
+    regex:
+      - ".*llama-3.1.*"
+  "llama-3.2":
+    priority: 15
+    regex:
+      - ".*llama-3.2.*"
+  "llama-3.3":
+    priority: 20
+    regex:
+      - ".*llama-3.3.*"
+
+  "Thinking":
+    priority: 5
+    regex:
+      - ".*thinking.*"
+  "high":
+    priority: 5
+    regex:
+      - ".*high.*"
+  "low":
+    priority: -5
+    regex:
+      - ".*low.*"
+  "exp":
+    priority: -5
+    regex:
+      - ".*-exp^"
+  "Reasoning":
+    priority: 5
+    regex:
+      - ".*reasoning.*"
+
+  "lite":
+    priority: -3
+    regex:
+      - ".*lite.*"
+  "large":
+    priority: 3
+    regex:
+      - ".*lite.*"
+  "small":
+    priority: -3
+    regex:
+      - ".*lite.*"
+  "instruct":
+    priority: 2
+    regex:
+      - ".*instruct.*"
+  "base":
+    priority: -2
+    regex:
+      - ".*base.*"
+
+  "Distill":
+    priority: -2
+    regex:
+      - ".*distill.*"
+  "zero":
+    priority: -2
+    regex:
+      - ".*zero.*"
+
+  "Moderation":
+    priority: -100
+    regex:
+      - ".*moderation.*"
   "Search":
     priority: -100
     regex:
       - ".*search.*"
-  "Distill":
-    priority: -100
-    regex:
-      - ".*distill.*"
-  "zero":
-    priority: -100
-    regex:
-      - ".*zero.*"
-  "mini":
-    priority: -100
-    regex:
-      - ".*mini.*"
-#  "No zero":
-#    priority: 10
-#    regex:
-#      - "^(?!.*zero).*"
+
   "Embedding":
     priority: -10000
     regex:
@@ -32,95 +207,19 @@ adjustments:
     priority: -10000
     regex:
       - ".*image.*"
+  "Flux":
+    priority: -10000
+    regex:
+      - ".*flux.*"
   "TTS":
     priority: -10000
     regex:
       - ".*tts.*"
-  "GPT-4o":
-    priority: 91
+  "whisper":
+    priority: -10000
     regex:
-      - ".*gpt[-_ ]{0,1}4o.*"
-  "GPT-4":
-    priority: 90
+      - ".*whisper.*"
+  "openrouter/auto":
+    priority: -10000
     regex:
-      - ".*gpt[-_ ]{0,1}4.*"
-  "Claude 3.5 Sonnet":
-    priority: 92
-    regex:
-      - ".*claude[-_ ]{0,1}3\\.5[-_ ]{0,1}sonnet.*"
-  "Claude 3.5 Haiku":
-    priority: 88
-    regex:
-      - ".*claude[-_ ]{0,1}3\\.5[-_ ]{0,1}haiku.*"
-  "Claude 3 Opus":
-    priority: 89
-    regex:
-      - ".*claude[-_ ]{0,1}3[-_ ]{0,1}opus.*"
-  "Claude 3 Sonnet":
-    priority: 87
-    regex:
-      - ".*claude[-_ ]{0,1}3[-_ ]{0,1}sonnet.*"
-  "Claude 3 Haiku":
-    priority: 85
-    regex:
-      - ".*claude[-_ ]{0,1}3[-_ ]{0,1}haiku.*"
-  "Mixtral 8x22B":
-    priority: 88
-    regex:
-      - ".*mixtral[-_ ]{0,1}8x22b.*"
-  "Mixtral 8x7B":
-    priority: 82
-    regex:
-      - ".*mixtral[-_ ]{0,1}8x7b.*"
-  "Codestral":
-    priority: 89
-    regex:
-      - ".*codestral.*"
-  "Gemini Pro 1.5":
-    priority: 87
-    regex:
-      - ".*gemini[-_ ]{0,1}pro[-_ ]{0,1}1\\.5.*"
-  "Gemini Flash 1.5":
-    priority: 85
-    regex:
-      - ".*gemini[-_ ]{0,1}flash[-_ ]{0,1}1\\.5.*"
-  "Command R+":
-    priority: 86
-    regex:
-      - ".*command[-_ ]{0,1}r\\+.*"
-  "Command R":
-    priority: 84
-    regex:
-      - ".*command[-_ ]{0,1}r.*"
-  "Llama 3.3 70B":
-    priority: 85
-    regex:
-      - ".*llama[-_ ]{0,1}3\\.3[-_ ]{0,1}70b.*"
-  "Llama 3.1 70B":
-    priority: 83
-    regex:
-      - ".*llama[-_ ]{0,1}3\\.1[-_ ]{0,1}70b.*"
-  "Llama 3 70B":
-    priority: 82
-    regex:
-      - ".*llama[-_ ]{0,1}3[-_ ]{0,1}70b.*"
-  "Qwen 2.5 72B":
-    priority: 83
-    regex:
-      - ".*qwen[-_ ]{0,1}2\\.5[-_ ]{0,1}72b.*"
-  "Phi-3":
-    priority: 84
-    regex:
-      - ".*phi[-_ ]{0,1}3.*"
-  "Llama 2 70B":
-    priority: 78
-    regex:
-      - ".*llama[-_ ]{0,1}2[-_ ]{0,1}70b.*"
-  "Claude 2":
-    priority: 78
-    regex:
-      - ".*claude[-_ ]{0,1}2.*"
-  "GPT-3.5":
-    priority: 75
-    regex:
-      - ".*gpt[-_ ]{0,1}3\\.5.*"
+      - "openrouter/auto"

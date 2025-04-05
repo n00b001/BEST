@@ -14,10 +14,13 @@ EXTERNAL_HEALTHCHECK_URL = "https://free-llm-api.onrender.com/ok"
 NON_PROJECT_HEALTHCHECK_URL = "http://example.com"
 MAX_REQUEST_CHAR_COUNT_FOR_LOG = 100
 GENERATED_PROVIDER_CONFIG_STALE_TIME_SECS = 60 * 60 * 24
+DEBUG_MODE = True
 
 # model params are typically in the range: 0.5b -> 405b
-MODEL_PARAM_SCORE_SCALAR = 0.1
-# context is typicall in the range: 1024 -> 1000000
-MODEL_CTX_SCORE_SCALAR = 0.00001
-MODEL_LEADERBOARD_SCORE_SCALAR = 0.1
-MODEL_ADJUSTMENT_SCALAR = 1
+MODEL_PARAM_SCORE_SCALAR = 100 / 405
+# context is typicall in the range: 1024 -> 2_000_000
+MODEL_CTX_SCORE_SCALAR = 100 / 2_000_000
+# score is typically in the range: 0 -> 1
+MODEL_LEADERBOARD_SCORE_SCALAR = 100 / 1
+# in the range: (-99999 -> 100)
+MODEL_ADJUSTMENT_SCALAR = (100 / 100) * 2
