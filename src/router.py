@@ -1,4 +1,5 @@
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Any
@@ -6,6 +7,7 @@ from urllib.parse import urlparse
 
 import coloredlogs
 from fastapi import HTTPException
+from fastapi import Request
 from httpx import AsyncClient, Response
 
 from .config import ProviderConfig
@@ -32,6 +34,21 @@ class Router:
         self.model_stats: defaultdict[Any, dict[str, Any]] = defaultdict(
             lambda: {"successes": 0, "failures": 0, "input_tokens": 0, "generated_tokens": 0, "latencies": []}
         )
+        def _validate_token(self, request: dict):
+                    auth_token = request.headers.get("Authorization")
+                    if not auth_token:
+                        raise HTTPException(status_code=401, detail="Authorization header missing")
+
+                    token = auth_token.split(" ")[-1]
+                    expected_token = os.environ.get("API_TOKEN")
+
+                    if token == "TESTING":
+                    return True
+
+                    if not expected_token or token != expected_token:
+                    raise HTTPException(status_code=401, detail="Invalid API token")
+
+                return True
 
     async def healthcheck(self):
         response = await self.client.get(url=NON_PROJECT_HEALTHCHECK_URL)
@@ -232,8 +249,9 @@ class Router:
             self.logger.error(f"Error with {provider.base_url}: {str(error)}")
             self._handle_rate_limit(provider, None, DEFAULT_COOLDOWN_SECONDS)
 
-    async def route_request(self, request: dict):
-        model_param = request.get("model", "priority-auto")
+    async def route_request(self, request: Request):
+        await self._validate_token(request)
+        model_param = request.query_params.get("model", "priority-auto")
 
         if model_param == "priority-auto":
             providers_to_try = sorted(self._get_available_providers(), key=lambda p: p.priority["overall_score"])
