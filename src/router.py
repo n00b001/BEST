@@ -14,7 +14,8 @@ from .consts import (
     LOG_LEVEL,
     DEFAULT_COOLDOWN_SECONDS,
     BAD_REQUEST_COOLDOWN_SECONDS,
-    NON_PROJECT_HEALTHCHECK_URL, MAX_RETRIES,
+    NON_PROJECT_HEALTHCHECK_URL,
+    MAX_RETRIES,
 )
 
 
@@ -235,7 +236,7 @@ class Router:
     async def route_request(self, request: dict):
         model_param = request.get("model", "priority-auto")
 
-        tries =0
+        tries = 0
         while True:
             if model_param == "priority-auto":
                 providers_to_try = sorted(self._get_available_providers(), key=lambda p: p.priority["overall_score"])
