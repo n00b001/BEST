@@ -79,7 +79,7 @@ repos:
         require_serial: true
         args:
           [
-            "run","python","-m","flake8","--exclude",".venv","--max-line-length","120","."
+            "run","python","-m","flake8","--exclude",".venv","--max-line-length","150","."
           ]
   - repo: local
     hooks:
@@ -92,5 +92,5 @@ repos:
         args:
           [
             "run","python","-m","pylint","--ignore",".venv","--output-format=colorized",
-            "--max-line-length","120","--fail-under","5","--fail-on","E","."
+            "--max-line-length","150","--fail-under","5","--fail-on","E","."
           ]
