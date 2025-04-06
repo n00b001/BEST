@@ -240,8 +240,7 @@ def load_config() -> List[ProviderConfig]:
             )
         )
 
-    # the higher the priority, the more likely the provider should be used
-    providers.sort(key=lambda x: x.priority["overall_score"], reverse=True)
+    sort_providers(providers)
 
     # remove providers with a priority <1
     high_scoring_providers = set([p for p in providers if p.priority["overall_score"] > 0])
@@ -252,4 +251,10 @@ def load_config() -> List[ProviderConfig]:
         for p in low_scoring_providers:
             logger.debug(p)
 
+    return providers
+
+
+def sort_providers(providers):
+    # the higher the priority, the more likely the provider should be used
+    providers.sort(key=lambda x: x.priority["overall_score"], reverse=True)
     return providers

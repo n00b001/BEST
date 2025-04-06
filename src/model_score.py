@@ -173,7 +173,7 @@ def fetch_tabby_leaderboard2() -> pd.DataFrame:
     for col in score_columns:
         df[col] = (df[col] - df[col].min()) / (df[col].max() - df[col].min())
     df["score"] = df[score_columns].mean(axis=1)
-    df.sort_values(by="score", ascending=False, inplace=True)
+    df = df.sort_values(by="score", ascending=False)
     df.reset_index(drop=True, inplace=True)
     return df
 
@@ -235,7 +235,7 @@ def fetch_aider_leaderboard2() -> pd.DataFrame:
         ),
         axis=1,
     )
-    merged_df.drop(["score_x", "score_y"], axis=1, inplace=True, errors="ignore")
+    merged_df = merged_df.drop(["score_x", "score_y"], axis=1, errors="ignore")
     return merged_df
 
 

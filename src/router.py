@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
+from time import sleep
 from typing import List, Dict, Tuple, Any
 from urllib.parse import urlparse
 
@@ -8,13 +9,15 @@ import coloredlogs
 from fastapi import HTTPException
 from httpx import AsyncClient, Response
 
-from .config import ProviderConfig
+from .config import ProviderConfig, sort_providers
 from .consts import (
     API_TIMEOUT_SECS,
     LOG_LEVEL,
     DEFAULT_COOLDOWN_SECONDS,
     BAD_REQUEST_COOLDOWN_SECONDS,
     NON_PROJECT_HEALTHCHECK_URL,
+    MAX_RETRIES,
+    RATE_LIMIT_BACKOFF_SECS,
 )
 
 
@@ -173,10 +176,10 @@ class Router:
             **latency_metrics,
         }
 
-    def _get_available_providers(self):
+    def _get_available_providers(self, providers):
         now = datetime.now()
         available = []
-        for provider in self.providers:
+        for provider in providers:
             # Check base URL cooldown
             base_cooldown_end = self.base_cooldowns.get(provider.base_url)
             if base_cooldown_end and base_cooldown_end > now:
@@ -234,32 +237,22 @@ class Router:
 
     async def route_request(self, request: dict):
         model_param = request.get("model", "priority-auto")
+        model_names = [name.strip() for name in model_param.split(",")]
 
-        if model_param == "priority-auto":
-            providers_to_try = sorted(self._get_available_providers(), key=lambda p: p.priority["overall_score"])
-        else:
-            model_names = [name.strip() for name in model_param.split(",")]
-            providers_to_try = []
+        if model_param != "priority-auto":
+            ordered_suitable_providers = []
             for model_name in model_names:
-                model_providers = [p for p in self._get_available_providers() if model_name in p.model_name]
-                sorted_providers = sorted(model_providers, key=lambda p: p.priority["overall_score"])
-                providers_to_try.extend(sorted_providers)
+                model_providers = [p for p in self.providers if model_name in p.model_name]
+                if len(model_providers) == 0:
+                    self.logger.warning(f"Could not find any providers for model name: {model_name}")
+                model_providers = sort_providers(model_providers)
+                ordered_suitable_providers.extend(model_providers)
+            if len(ordered_suitable_providers) == 0:
+                raise HTTPException(status_code=400, detail=f"Could not find any providers for model(s): {model_param}")
+        else:
+            ordered_suitable_providers = sort_providers(self.providers)
 
-        if not providers_to_try:
-            raise HTTPException(status_code=429, detail="All providers are rate limited")
-
-        for provider in providers_to_try:
-            start_time = datetime.now()
-            try:
-                response = await self._make_request(provider, request)
-                latency = (datetime.now() - start_time).total_seconds()
-                response.raise_for_status()
-                return self._process_successful_response(provider, response, latency)
-            except Exception as e:
-                latency = (datetime.now() - start_time).total_seconds()
-                await self._handle_provider_error(provider, e, response, latency)
-
-        raise HTTPException(status_code=429, detail="All providers rate limited")
+        return await self.retry_provider_loop(ordered_suitable_providers, request)
 
     def _reset_failure_counts(self, provider: ProviderConfig):
         self.base_failure_counts.pop(provider.base_url, None)
@@ -319,3 +312,35 @@ class Router:
         if retry_after is not None:
             return retry_after
         return base_cooldown * (2 ** (failures - 1))
+
+    async def retry_provider_loop(self, ordered_suitable_providers, request):
+        tries = 0
+        while True:
+            providers_to_try = self._get_available_providers(ordered_suitable_providers)
+
+            if not providers_to_try:
+                tries += 1
+                if tries > MAX_RETRIES:
+                    raise HTTPException(status_code=429, detail="All providers are rate limited")
+                wait_time = RATE_LIMIT_BACKOFF_SECS * tries
+                self.logger.warning(f"All providers rate limited, will wait {wait_time} seconds...")
+                sleep(wait_time)
+            else:
+                for provider in providers_to_try:
+                    start_time = datetime.now()
+                    response = None
+                    try:
+                        response = await self._make_request(provider, request)
+                        latency = (datetime.now() - start_time).total_seconds()
+                        response.raise_for_status()
+                        self.check_for_content_error(response)
+                        return self._process_successful_response(provider, response, latency)
+                    except Exception as e:
+                        latency = (datetime.now() - start_time).total_seconds()
+                        await self._handle_provider_error(provider, e, response, latency)
+
+    def check_for_content_error(self, response):
+        response_json = response.json()
+        error_code = str(response_json.get("error", {}).get("code", "200"))
+        if not error_code.startswith("2"):
+            raise RuntimeError(f"Got error status code: {error_code}, full error: {response_json}")

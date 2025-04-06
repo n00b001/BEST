@@ -92,7 +92,7 @@ async def models():
     router: Router = app.state.router
     try:
         content = await router.models()
-        return {"models": content}
+        return content
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 

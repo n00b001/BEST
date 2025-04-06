@@ -223,3 +223,7 @@ adjustments:
     priority: -10000
     regex:
       - "openrouter/auto"
+  "rerank":
+    priority: -10000
+    regex:
+      - ".*rerank.*"
