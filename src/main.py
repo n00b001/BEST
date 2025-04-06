@@ -19,8 +19,6 @@ logger = logging.getLogger(__name__)
 coloredlogs.install(level=LOG_LEVEL, logger=logger)
 
 
-
-
 def external_health_check():
     response = requests.get(EXTERNAL_HEALTHCHECK_URL)
     response.raise_for_status()
@@ -50,9 +48,7 @@ async def lifespan(app: FastAPI):
 
     @app.post("/chat/completions")
     @app.post("/v1/chat/completions")
-    async def chat_completion(
-        request: dict, verified: bool = Depends(verify_token)
-    ):
+    async def chat_completion(request: dict, verified: bool = Depends(verify_token)):
         router: Router = app.state.router
         try:
             trunc_request = await truncate_dict(request)
@@ -112,9 +108,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-
 
 
 if __name__ == "__main__":

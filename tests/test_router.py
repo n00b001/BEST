@@ -1,11 +1,12 @@
+from src.config import ProviderConfig
+from src.router import Router
+from fastapi import HTTPException
 import pytest
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from fastapi import HTTPException
-from src.router import Router
-from src.config import ProviderConfig
-import os
+
 
 @pytest.fixture
 def router():
@@ -19,14 +20,17 @@ def router():
     ]
     return Router(providers=providers)
 
+
 def test_validate_token_success(router):
     os.environ["API_TOKEN"] = "test_token"
     request = {"headers": {"Authorization": "Bearer test_token"}}
     assert router._validate_token(request) == True
 
+
 def test_validate_token_testing_success(router):
     request = {"headers": {"Authorization": "Bearer TESTING"}}
     assert router._validate_token(request) == True
+
 
 def test_validate_token_missing(router):
     request = {"headers": {}}
@@ -34,6 +38,7 @@ def test_validate_token_missing(router):
         router._validate_token(request)
     assert excinfo.value.status_code == 401
     assert str(excinfo.value.detail) == "Authorization header missing"
+
 
 def test_validate_token_invalid(router):
     os.environ["API_TOKEN"] = "test_token"

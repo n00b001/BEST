@@ -32,21 +32,25 @@ class Router:
         self.base_failure_counts: Dict[str, int] = {}
         self.model_failure_counts: Dict[Tuple[str, str], int] = {}
         self.model_stats: defaultdict[Any, dict[str, Any]] = defaultdict(
-            lambda: {"successes": 0, "failures": 0, "input_tokens": 0, "generated_tokens": 0, "latencies": []}
+            lambda: {"successes": 0, "failures": 0, "input_tokens": 0,
+                "generated_tokens": 0, "latencies": []}
         )
+
         def _validate_token(self, request: dict):
                     auth_token = request.headers.get("Authorization")
                     if not auth_token:
-                        raise HTTPException(status_code=401, detail="Authorization header missing")
+                        raise HTTPException(
+                            status_code=401, detail="Authorization header missing")
 
                     token = auth_token.split(" ")[-1]
                     expected_token = os.environ.get("API_TOKEN")
 
                     if token == "TESTING":
-                    return True
+                        return True
 
                     if not expected_token or token != expected_token:
-                    raise HTTPException(status_code=401, detail="Invalid API token")
+                        raise HTTPException(
+                        status_code=401, detail="Invalid API token")
 
                 return True
 
