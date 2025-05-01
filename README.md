@@ -5,9 +5,8 @@ through a single, OpenAI-compatible API, simplifying integration and providing f
 
 ## Getting Started
 
-1. **Install Dependencies:** Install the required packages using either:
-    - `pip install -r requirements.txt`
-    - `uv sync`
+1. **Install Dependencies:** Install the required packages using:
+    - `uv sync` (https://docs.astral.sh/uv/)
 
 2. **Configure Providers:**
     - Add your LLM providers to `config/meta-providers.yaml`.
