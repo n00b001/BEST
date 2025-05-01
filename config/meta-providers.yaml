@@ -8,9 +8,9 @@ providers:
     base_url: "https://api.groq.com/openai/v1"
     base_priority: 1
 
-#  - api_key_env_var: "SCW_SECRET_KEY"
-#    base_url: "https://api.scaleway.ai/28003754-a2fc-4696-8ee7-2c2b1747bc54/v1"
-#    base_priority: 1
+  #  - api_key_env_var: "SCW_SECRET_KEY"
+  #    base_url: "https://api.scaleway.ai/28003754-a2fc-4696-8ee7-2c2b1747bc54/v1"
+  #    base_priority: 1
 
   - api_key_env_var: "GEMINI_API_KEY"
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
@@ -24,17 +24,17 @@ providers:
     base_url: "https://api.mistral.ai/v1"
     base_priority: 1
 
-#  - api_key_env_var: "OVH_API_KEY"
-#    base_url: "https://llama-3-3-70b-instruct.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
-#    base_priority: 1
-#
-#  - api_key_env_var: "OVH_API_KEY"
-#    base_url: "https://mistral-nemo-instruct-2407.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
-#    base_priority: 1
-#
-#  - api_key_env_var: "OVH_API_KEY"
-#    base_url: "https://mixtral-8x7b-instruct-v01.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
-#    base_priority: 1
+  #  - api_key_env_var: "OVH_API_KEY"
+  #    base_url: "https://llama-3-3-70b-instruct.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
+  #    base_priority: 1
+  #
+  #  - api_key_env_var: "OVH_API_KEY"
+  #    base_url: "https://mistral-nemo-instruct-2407.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
+  #    base_priority: 1
+  #
+  #  - api_key_env_var: "OVH_API_KEY"
+  #    base_url: "https://mixtral-8x7b-instruct-v01.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
+  #    base_priority: 1
 
   - api_key_env_var: "TOGETHER_API_KEY"
     base_url: "https://api.together.xyz/v1"
