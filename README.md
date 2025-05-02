@@ -25,6 +25,17 @@ through a single, OpenAI-compatible API, simplifying integration and providing f
     openai.api_key = "any-key"  # Not used by the gateway
     ```
 
+## Dynamic Scoring Mechanism
+
+The LLM Gateway uses a dynamic scoring mechanism to prioritize and route requests to the most suitable provider. The score for each provider is calculated based on the following factors:
+
+1. **Priority**: A static priority value assigned to each provider for a specific model.
+2. **Leaderboard Score**: A score fetched from a leaderboard (e.g., BigCodeBench) that reflects the model's performance.
+3. **Parameter Score**: A score calculated based on the model's parameters (e.g., `max_tokens`, `temperature`).
+4. **Context Score**: A score calculated based on the context length of the model.
+
+The final score is a weighted sum of these factors, where the weights are defined by the constants `MODEL_LEADERBOARD_SCORE_SCALAR`, `MODEL_PARAM_SCORE_SCALAR`, and `MODEL_CTX_SCORE_SCALAR`.
+
 ## Features
 
 - Single API endpoint matching OpenAI's specification.
