@@ -1,4 +1,4 @@
-# LLM Gateway
+# B.E.S.T. – Benchmark‑Enhanced Selective Transit
 
 A unified API gateway for multiple OpenAI-compatible LLM providers. This project allows you to use various LLM services
 through a single, OpenAI-compatible API, simplifying integration and providing features like failover and rate limiting.
