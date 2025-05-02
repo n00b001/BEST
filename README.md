@@ -87,6 +87,10 @@ openai.api_key = "any-key"  # Not used by gateway
 3. And after making code changes, run this before pushing (if it fails here, it will fail github actions) `uv run python -m autopep8 --exclude .venv -ri . && uv run python -m black --fast --color -l 120 . && uv run python -m mypy --exclude .venv --follow-untyped-imports --explicit-package-bases . && uv run python -m flake8 --exclude .venv --max-line-length 120 . && uv run python -m pylint --ignore .venv --output-format=colorized \
           --max-line-length 120 --fail-under 5 --fail-on E . && uv run python -m pytest --color yes --verbosity=3;`
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=n00b001/BEST&type=Date)](https://www.star-history.com/#n00b001/BEST&Date)
+
 ## Todo
 
 - Add more concrete examples to the documentation.
