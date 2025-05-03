@@ -199,6 +199,10 @@ adjustments:
     regex:
       - ".*search.*"
 
+  "provers":
+    priority: -10000
+    regex:
+      - ".*prover.*"
   "Embedding":
     priority: -10000
     regex:

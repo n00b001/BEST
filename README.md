@@ -1,4 +1,4 @@
-# LLM Gateway
+# B.E.S.T. – Benchmark‑Enhanced Selective Transit
 
 A unified API gateway for multiple OpenAI-compatible LLM providers. This project allows you to use various LLM services
 through a single, OpenAI-compatible API, simplifying integration and providing features like failover, dynamic scoring, and **authentication**.
@@ -130,7 +130,11 @@ The final score is a weighted sum of these factors, with weights defined by cons
     ```
     This command is defined in `pyproject.toml` and runs formatters (autopep8, black), type checkers (mypy), linters (flake8, pylint), and tests (pytest). Ensure it passes to avoid CI failures.
 
-## TODO
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=n00b001/BEST&type=Date)](https://www.star-history.com/#n00b001/BEST&Date)
+
+## Todo
 
 *   Add tests for the authentication layer.
 *   Add more specific examples for different client libraries.
