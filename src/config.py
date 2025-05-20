@@ -258,3 +258,11 @@ def sort_providers(providers):
     # the higher the priority, the more likely the provider should be used
     providers.sort(key=lambda x: x.priority["overall_score"], reverse=True)
     return providers
+
+
+def load_bearer_tokens() -> List[str]:
+    """Loads a comma-separated list of bearer tokens from the ALLOWED_BEARER_TOKENS environment variable."""
+    tokens_str = os.getenv("ALLOWED_BEARER_TOKENS")
+    if not tokens_str:
+        return []
+    return [token.strip() for token in tokens_str.split(",")]
