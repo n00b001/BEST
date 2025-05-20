@@ -3,7 +3,7 @@ import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
+from typing import List, Tuple # Ensure Tuple is imported
 from urllib.parse import urlparse
 
 import coloredlogs
@@ -36,6 +36,11 @@ yaml = ruamel.yaml.YAML()
 yaml.preserve_quotes = True
 yaml.explicit_start = True
 yaml.indent(sequence=4, offset=2)
+
+AUTH_CONFIG_FILENAME = "config/auth.yaml"
+
+class AuthConfig(BaseModel):
+    authentication_enabled: bool = True
 
 
 class ProviderConfig(BaseModel):
@@ -204,7 +209,27 @@ def _write_output_config(config_path: str, output: dict):
         yaml.dump(output, f)
 
 
-def load_config() -> List[ProviderConfig]:
+def load_auth_config(auth_config_filename: str = AUTH_CONFIG_FILENAME) -> AuthConfig:
+    config_values = {}
+    try:
+        with open(auth_config_filename, "r") as f:
+            yaml_config = yaml.load(f) # Using ruamel.yaml instance
+            if yaml_config: # Check if file is not empty
+                config_values.update(yaml_config)
+    except FileNotFoundError:
+        logger.warning(f"Auth config file not found: {auth_config_filename}. Using defaults.")
+    except Exception as e:
+        logger.error(f"Error loading auth config file {auth_config_filename}: {e}. Using defaults.")
+
+    # Environment variable override
+    auth_enabled_env = os.getenv("LLMGW_AUTH_ENABLED")
+    if auth_enabled_env is not None:
+        config_values["authentication_enabled"] = auth_enabled_env.lower() == 'true'
+
+    return AuthConfig(**config_values)
+
+
+def load_config() -> Tuple[List[ProviderConfig], AuthConfig]:
     loaded_dot_env = load_dotenv(DOT_ENV_FILENAME, verbose=True)
     if not loaded_dot_env:
         logger.warning(f"couldn't load dot env: {DOT_ENV_FILENAME}")
@@ -251,7 +276,10 @@ def load_config() -> List[ProviderConfig]:
         for p in low_scoring_providers:
             logger.debug(p)
 
-    return providers
+    auth_config = load_auth_config()
+    logger.info(f"Auth config loaded: authentication_enabled={auth_config.authentication_enabled}")
+
+    return providers, auth_config # MODIFIED RETURN
 
 
 def sort_providers(providers):

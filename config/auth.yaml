@@ -1,0 +1,5 @@
+# Configuration for API Key Authentication
+authentication_enabled: true
+
+# Environment variable: LLMGW_AUTH_ENABLED (true/false)
+# If LLMGW_AUTH_ENABLED is set, it will override the value of authentication_enabled.

@@ -3,6 +3,85 @@
 A unified API gateway for multiple OpenAI-compatible LLM providers. This project allows you to use various LLM services
 through a single, OpenAI-compatible API, simplifying integration and providing features like failover and rate limiting.
 
+## Authentication
+
+Access to the LLM Gateway API (excluding health checks and OpenAPI docs) is protected by API key authentication. You must include an API key with your requests.
+
+API keys are passed using the `Authorization` header with the `Bearer` scheme.
+
+**Example using `curl`:**
+
+```bash
+curl -X POST http://localhost:8000/v1/chat/completions \
+     -H "Authorization: Bearer llmgw-sk-yourgeneratedapikey" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "model": "priority-auto",
+           "messages": [{"role": "user", "content": "Hello!"}]
+         }'
+```
+
+**Example using the `openai` Python client:**
+
+Ensure your OpenAI client is configured to point to the LLM Gateway and use your API key:
+
+```python
+import openai
+
+# Configure the base URL to point to your LLM Gateway instance
+openai.api_base = "http://localhost:8000/v1" # Or your deployed gateway URL
+
+# Set your API key obtained from the LLM Gateway admin interface
+openai.api_key = "llmgw-sk-yourgeneratedapikey" 
+
+# Make a request
+try:
+    chat_completion = openai.ChatCompletion.create(
+        model="priority-auto", # Or a specific model available through the gateway
+        messages=[{"role": "user", "content": "Translate 'hello' to French."}]
+    )
+    print(chat_completion.choices[0].message.content)
+except openai.error.OpenAIError as e:
+    print(f"An API error occurred: {e}")
+
+```
+
+API keys must be generated using the Admin API. See the "API Key Management (Admin)" section for details.
+
+## API Key Management (Admin)
+
+API keys for accessing the LLM Gateway are managed through a set of administrative endpoints. These endpoints are protected by a separate Admin API Key.
+
+**Admin Authentication:**
+
+*   The Admin API Key must be set using the `LLMGW_ADMIN_API_KEY` environment variable when running the gateway (e.g., in your `.env` file).
+*   Requests to admin endpoints must include this key in the `X-Admin-API-Key` header.
+
+**Admin Endpoints:**
+
+*   **`POST /admin/keys`**: Generate a new API key.
+    *   **Request Body**: `{"name": "your_key_name"}`
+    *   **Response**: Details of the new key, including the `plaintext_key`. **Store this key securely as it will not be shown again.**
+*   **`GET /admin/keys`**: List all active (non-revoked) API keys. (Does not show the key itself).
+*   **`DELETE /admin/keys/{key_id}`**: Revoke an API key by its ID.
+*   **`GET /admin/usage`**: (Placeholder) View basic usage statistics by key (currently shows key details including `last_used`).
+
+**Example: Creating an API Key using `curl`**
+
+```bash
+curl -X POST http://localhost:8000/admin/keys \
+     -H "X-Admin-API-Key: your_secret_admin_key" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "my_test_key"}'
+```
+
+**Example: Listing API Keys using `curl`**
+
+```bash
+curl -X GET http://localhost:8000/admin/keys \
+     -H "X-Admin-API-Key: your_secret_admin_key"
+```
+
 ## Getting Started
 
 1. **Install Dependencies:** Install the required packages using:

@@ -2,7 +2,7 @@
 name = "free-llm-api"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "aiofiles>=0.8.0",
     "apscheduler>=3.11.0",
@@ -18,6 +18,8 @@ dependencies = [
     "requests>=2.32.3",
     "ruamel-yaml>=0.18.10",
     "uvicorn>=0.15.0",
+    "sqlalchemy>=1.4.0", # Added sqlalchemy
+    "passlib[bcrypt]>=1.7.4", # Added passlib with bcrypt extra
 ]
 
 [dependency-groups]
