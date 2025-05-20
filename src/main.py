@@ -21,6 +21,25 @@ logger = logging.getLogger(__name__)
 coloredlogs.install(level=LOG_LEVEL, logger=logger)
 
 
+# Dependency for token verification
+async def verify_token(authorization: str = Header(None)):
+    allowed_tokens = load_bearer_tokens()
+    if not allowed_tokens:  # No tokens configured, auth disabled
+        return True
+
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    token = parts[1]
+    if token not in allowed_tokens:
+        raise HTTPException(status_code=403, detail="Invalid token")
+    return True
+
+
 def external_health_check():
     response = requests.get(EXTERNAL_HEALTHCHECK_URL)
     response.raise_for_status()
@@ -71,7 +90,6 @@ async def chat_completion(request: Request): # <--- Change to accept the whole R
 
     # Extract the actual request body for the router
     request_body = await request.json()
-
     try:
         # Log API key usage if auth is enabled
         if auth_config.authentication_enabled:
@@ -115,7 +133,7 @@ async def ok():
 
 
 @app.get("/stats")
-async def stats():
+async def stats(_token_verified: bool = Depends(verify_token)):
     router: Router = app.state.router
     try:
         content = await router.stats()
@@ -126,7 +144,7 @@ async def stats():
 
 @app.get("/models")
 @app.get("/v1/models")
-async def models():
+async def models(_token_verified: bool = Depends(verify_token)):
     router: Router = app.state.router
     try:
         content = await router.models()
