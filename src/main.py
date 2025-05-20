@@ -5,17 +5,36 @@ import coloredlogs
 import requests
 import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.config import load_config
+from src.config import load_config, load_bearer_tokens
 from src.consts import PORT, LOG_LEVEL, EXTERNAL_HEALTHCHECK_URL
 from src.router import Router
 from src.utils import truncate_dict
 
 logger = logging.getLogger(__name__)
 coloredlogs.install(level=LOG_LEVEL, logger=logger)
+
+
+# Dependency for token verification
+async def verify_token(authorization: str = Header(None)):
+    allowed_tokens = load_bearer_tokens()
+    if not allowed_tokens:  # No tokens configured, auth disabled
+        return True
+
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    token = parts[1]
+    if token not in allowed_tokens:
+        raise HTTPException(status_code=403, detail="Invalid token")
+    return True
 
 
 def external_health_check():
@@ -50,7 +69,7 @@ app.add_middleware(
 
 @app.post("/chat/completions")
 @app.post("/v1/chat/completions")
-async def chat_completion(request: dict):
+async def chat_completion(request: dict, _token_verified: bool = Depends(verify_token)):
     router: Router = app.state.router
     try:
         trunc_request = await truncate_dict(request)
@@ -77,7 +96,7 @@ async def ok():
 
 
 @app.get("/stats")
-async def stats():
+async def stats(_token_verified: bool = Depends(verify_token)):
     router: Router = app.state.router
     try:
         content = await router.stats()
@@ -88,7 +107,7 @@ async def stats():
 
 @app.get("/models")
 @app.get("/v1/models")
-async def models():
+async def models(_token_verified: bool = Depends(verify_token)):
     router: Router = app.state.router
     try:
         content = await router.models()

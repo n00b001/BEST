@@ -46,6 +46,41 @@ The final score is a weighted sum of these factors, where the weights are define
 - Health check endpoint.
 - Robust error handling.
 
+## Authentication
+
+The gateway supports Bearer Token authentication for securing its endpoints. This allows you to control who can access the API.
+
+### Configuration
+
+Authentication is configured using the `ALLOWED_BEARER_TOKENS` environment variable. This variable should contain a comma-separated list of valid bearer tokens.
+
+**Example:**
+
+```bash
+export ALLOWED_BEARER_TOKENS="your_secret_token1,another_secure_token,token3"
+```
+
+Or, you can add this line to your `.env` file:
+
+```
+ALLOWED_BEARER_TOKENS="your_secret_token1,another_secure_token,token3"
+```
+
+### Behavior
+
+-   **Authentication Enabled**: If `ALLOWED_BEARER_TOKENS` is set and contains one or more tokens, clients must provide a valid token in the `Authorization` header with the "Bearer" scheme.
+    Example: `Authorization: Bearer your_secret_token1`
+-   **Authentication Disabled**: If the `ALLOWED_BEARER_TOKENS` environment variable is not set or is left empty, authentication is disabled. In this mode, all protected routes will be accessible without requiring a token. This is useful for development or trusted environments.
+
+The following endpoints are protected by authentication when it is enabled:
+- `/chat/completions`
+- `/v1/chat/completions`
+- `/stats`
+- `/models`
+- `/v1/models`
+
+The `/health` and `/ok` endpoints are always accessible without authentication.
+
 ## **Project Rules**
 
 - Always update requirements.txt when adding dependencies
